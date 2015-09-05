@@ -1,12 +1,18 @@
 # Patches welcome to actually make this portable
 
-default: tools/pack-asmjs tools/unpack-asmjs jslib/load-wasm-worker.js
+default: tools/pack-asmjs tools/unpack-asmjs jslib/load-wasm-worker.js tools/pack-asmjs-v8
 
 tools/pack-asmjs: src/pack-asmjs.cpp src/unpack.cpp src/unpack.h src/shared.h src/cashew/parser.h src/cashew/parser.cpp src/cashew/istring.h
 	mkdir -p tools
 	c++ -O3 -g -std=c++11 -DCHECKED_OUTPUT_SIZE -Wall -pedantic \
 	    src/pack-asmjs.cpp src/unpack.cpp src/cashew/parser.cpp \
 	    -o tools/pack-asmjs
+
+tools/pack-asmjs-v8: src/pack-asmjs.cpp src/polyfill-to-v8.cpp src/unpack.cpp src/unpack.h src/shared.h src/cashew/parser.h src/cashew/parser.cpp src/cashew/istring.h
+	mkdir -p tools
+	c++ -g -std=c++11 -DCHECKED_OUTPUT_SIZE -DV8_FORMAT -Wall -pedantic \
+	    src/pack-asmjs.cpp src/polyfill-to-v8.cpp src/unpack.cpp src/cashew/parser.cpp \
+	    -o tools/pack-asmjs-v8
 
 tools/unpack-asmjs: src/unpack-asmjs.cpp src/unpack.cpp src/unpack.h src/shared.h
 	mkdir -p tools
@@ -40,5 +46,5 @@ test: tools/pack-asmjs tools/unpack-asmjs
 
 .PHONY: clean
 clean:
-	rm -f tools/pack-asmjs tools/unpack-asmjs
+	rm -f tools/pack-asmjs tools/pack-asmjs-v8 tools/unpack-asmjs
 	rmdir tools

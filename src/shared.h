@@ -345,6 +345,7 @@ public:
   I32 i32() const { assert(type_ == RType::I32); return u.i32_; }
   F32 f32() const { assert(type_ == RType::F32); return u.f32_; }
   F64 f64() const { assert(type_ == RType::F64); return u.f64_; }
+  Void v() const { assert(type_ == RType::Void); return u.v_; }
   uint8_t raw_code() const { assert(!is_bad()); return u.raw_; }
 
   bool operator==(Expr rhs) const { return type_ == rhs.type_ && u.raw_ == rhs.u.raw_; }
@@ -530,6 +531,13 @@ struct Signature
       return h;
     }
   };
+
+  // for v8 encoding format
+  uint8_t args_size() const { return static_cast<uint8_t>(args.size()); }
+  uint32_t header_size() const {
+      static const uint32_t kMinFunctionSize = 24;
+      return kMinFunctionSize + static_cast<uint32_t>(args.size());
+  }
 };
 
 // =================================================================================================
