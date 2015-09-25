@@ -5,7 +5,6 @@
 #include "cashew/parser.h"
 #ifdef V8_FORMAT
 #include "wasm-opcodes-v8.h"
-#include "utils-v8.h"
 #endif
 
 #include <unordered_map>
@@ -19,9 +18,6 @@
 
 using namespace std;
 using cashew::IString;
-#ifdef V8_FORMAT
-using v8::bit_cast;
-#endif
 
 namespace asmjs {
 

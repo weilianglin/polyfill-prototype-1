@@ -2,7 +2,6 @@
 
 #include "shared.h"
 #include "wasm-opcodes-v8.h"
-#include "utils-v8.h"
 
 namespace asmjs {
 
