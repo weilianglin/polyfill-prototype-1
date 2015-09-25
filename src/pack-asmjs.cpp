@@ -2962,17 +2962,17 @@ write_prefix(Module& m, Function& f, const PrefixNode& prefix, Ctx ctx)
 #ifdef V8_FORMAT
   // I32::Neg -foo => foo*(-1)
   if (prefix.expr == I32::Neg) {
-    m.write().code(v8::kExprInt32Mul);
+    m.write().code(v8::kExprI32Mul);
     write_expr(m, f, prefix.kid);
-    m.write().code(v8::kExprInt32Const);
+    m.write().code(v8::kExprI32Const);
     m.write().fixed_width<int32_t>(-1);
     return;
   }
   // I32::BitNot ~foo => foo^(~0)
   if (prefix.expr == I32::BitNot) {
-    m.write().code(v8::kExprInt32Xor);
+    m.write().code(v8::kExprI32Xor);
     write_expr(m, f, prefix.kid);
-    m.write().code(v8::kExprInt32Const);
+    m.write().code(v8::kExprI32Const);
     m.write().fixed_width<uint32_t>(0xffffffff);
     return;
   }
@@ -3046,15 +3046,15 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
 #ifdef V8_FORMAT
       // I32::Abs value >=0 ? value : -value
       if (call.expr == I32::Abs) {
-        m.write().code(v8::kExprTernary);
-        m.write().code(v8::kExprInt32Sge);
+        m.write().code(v8::kExprIf);
+        m.write().code(v8::kExprI32GeS);
         write_expr(m, f, *call.first);
-        m.write().code(v8::kExprInt32Const);
+        m.write().code(v8::kExprI32Const);
         m.write().fixed_width<uint32_t>(0);
         write_expr(m, f, *call.first);
-        m.write().code(v8::kExprInt32Mul);
+        m.write().code(v8::kExprI32Mul);
         write_expr(m, f, *call.first);
-        m.write().code(v8::kExprInt32Const);
+        m.write().code(v8::kExprI32Const);
         m.write().fixed_width<int32_t>(-1);
         return;
       }
