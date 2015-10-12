@@ -28,8 +28,8 @@ int main() {
   int ret = curri - 1;
   end = chrono::system_clock::now();
   chrono::duration<double> elapsed_seconds = end-start;
-  cout << ret << endl;
-  cout << "elapsed time: " << elapsed_seconds.count() << endl;; 
+  cout << "  time: " << elapsed_seconds.count() * 1000 << " ms"  << endl;
+  cout << "  result: " << ret << endl;
   return ret;
 }
 
