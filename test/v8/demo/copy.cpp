@@ -42,7 +42,7 @@ int main() {
   }
   end = chrono::system_clock::now();
   chrono::duration<double> elapsed_seconds = end-start;
-  cout << "  time: " << elapsed_seconds.count() * 1000 << " ms"<< endl;; 
+  cout << "  time: " << elapsed_seconds.count() * 1000 << " ms"<< endl;
   cout << "  result: " << total << endl;
   return total;
 }

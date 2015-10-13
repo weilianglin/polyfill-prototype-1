@@ -29,7 +29,8 @@ function run() {
 }
 
 cases="primes
-copy"
+copy
+corrections"
 
 for case in $cases
 do
