@@ -41,6 +41,8 @@ union_cast(From from)
 #ifdef V8_FORMAT
 #define DELCARE_OPCODE(OpcodeType)               \
   v8::WasmOpcode opcode(const OpcodeType& op);
+  uint8_t LoadStoreAccessOf(const Expr& e);
+  uint8_t LoadStoreAccessOf(const Stmt& s);
 #else
 #define DELCARE_OPCODE(OpcodeType)               \
   OpcodeType opcode(const OpcodeType& op) {      \
@@ -2856,17 +2858,25 @@ write_store(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 {
   // The simple case
   if (ctx == Ctx::Stmt || binary.store_rhs_conv.is_bad()) {
-    if (ctx == Ctx::Stmt)
-      m.write().code(binary.stmt);
-    else
-      m.write().code(binary.expr);
+    if (ctx == Ctx::Stmt) {
+      m.write().code(opcode(binary.stmt));
+#ifdef V8_FORMAT
+      m.write().fixed_width<uint8_t>(LoadStoreAccessOf(binary.stmt));
+#endif
+    } else {
+      m.write().code(opcode(binary.expr));
+#ifdef V8_FORMAT
+      m.write().fixed_width<uint8_t>(LoadStoreAccessOf(binary.expr));
+#endif
+    }
     write_index(m, f, binary.lhs.as<IndexNode>());
     if (!binary.store_rhs_conv.is_bad())
-      m.write().code(binary.store_rhs_conv);
+      m.write().code(opcode(binary.store_rhs_conv));
     write_expr(m, f, binary.rhs);
     return;
   }
 
+  unreachable<void>();
   // The complex case: the stored value must be converted, but the result of the SetLoc expression
   // must be pre-conversion. Store the pre-conversion value in a temporary local (that we allocated
   // during the analyze phase), convert and store in the lhs of a Comma, and return the
@@ -3077,7 +3087,10 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
 void
 write_load(Module& m, Function& f, const IndexNode& index)
 {
-  m.write().code(index.expr);
+  m.write().code(opcode(index.expr));
+#ifdef V8_FORMAT
+  m.write().fixed_width<uint8_t>(LoadStoreAccessOf(index.expr));
+#endif
   write_index(m, f, index);
 }
 

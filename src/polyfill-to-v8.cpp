@@ -12,7 +12,7 @@ v8::WasmOpcode opcode(I32 i) {
     case I32::GetGlo: return v8::kExprLoadGlobal;
     case I32::SetLoc: return v8::kExprSetLocal;
     case I32::SetGlo: return v8::kExprStoreGlobal;
-    // TODO: Load and Store
+    // TODO: if index has Offset, emit i32add firstly
     case I32::SLoad8:
     case I32::SLoadOff8:
     case I32::ULoad8:
@@ -23,13 +23,14 @@ v8::WasmOpcode opcode(I32 i) {
     case I32::ULoadOff16:
     case I32::Load32:
     case I32::LoadOff32:
+      return v8::kExprI32LoadMemL;
     case I32::Store8:
     case I32::StoreOff8:
     case I32::Store16:
     case I32::StoreOff16:
     case I32::Store32:
     case I32::StoreOff32:
-      return unreachable<v8::WasmOpcode>();
+      return v8::kExprI32StoreMemL;
     case I32::CallInt: return v8::kExprCallFunction;
     case I32::CallInd: return v8::kExprCallIndirect;
     case I32::CallImp: return v8::kExprCallFunction;
@@ -47,7 +48,7 @@ v8::WasmOpcode opcode(I32 i) {
     case I32::SMod: return v8::kExprI32RemS;
     case I32::UMod: return v8::kExprI32RemU;
     case I32::BitNot: // Handled elsewhere
-       return unreachable<v8::WasmOpcode>();
+      return unreachable<v8::WasmOpcode>();
     case I32::BitOr: return v8::kExprI32Ior;
     case I32::BitAnd: return v8::kExprI32And;
     case I32::BitXor: return v8::kExprI32Xor;
@@ -95,11 +96,13 @@ v8::WasmOpcode opcode(F32 f) {
     case F32::GetGlo: return v8::kExprLoadGlobal;
     case F32::SetLoc: return v8::kExprSetLocal;
     case F32::SetGlo: return v8::kExprStoreGlobal;
+    // TODO: if index has Offset, emit i32add
     case F32::Load:
     case F32::LoadOff:
+      return v8::kExprF32LoadMemL;
     case F32::Store:
     case F32::StoreOff:
-      return unreachable<v8::WasmOpcode>();
+      return v8::kExprF32StoreMemL;
     case F32::CallInt: return v8::kExprCallFunction;
     case F32::CallInd: return v8::kExprCallIndirect;
     case F32::Cond: return v8::kExprIf;
@@ -130,9 +133,10 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::SetGlo: return v8::kExprStoreGlobal;
     case F64::Load:
     case F64::LoadOff:
+      return v8::kExprF64LoadMemL;
     case F64::Store:
     case F64::StoreOff:
-      return unreachable<v8::WasmOpcode>();
+      return v8::kExprF64StoreMemL;
     case F64::CallInt: return v8::kExprCallFunction;
     case F64::CallInd: return v8::kExprCallIndirect;
     case F64::CallImp: return v8::kExprCallFunction;
@@ -236,11 +240,13 @@ v8::WasmOpcode opcode(const Stmt& s) {
     case Stmt::I32StoreOff16:
     case Stmt::I32Store32:
     case Stmt::I32StoreOff32:
+      return v8::kExprI32StoreMemL;
     case Stmt::F32Store:
     case Stmt::F32StoreOff:
+      return v8::kExprF32StoreMemL;
     case Stmt::F64Store:
     case Stmt::F64StoreOff:
-      return unreachable<v8::WasmOpcode>();
+      return v8::kExprF64StoreMemL;
     case Stmt::CallInt: return v8::kExprCallFunction;
     case Stmt::CallInd: return v8::kExprCallIndirect;
     case Stmt::CallImp: return v8::kExprCallFunction;
@@ -268,6 +274,74 @@ v8::WasmOpcode opcode(const StmtWithImm& s) {
     case StmtWithImm::SetGlo: return v8::kExprStoreGlobal;
     default:
       return unreachable<v8::WasmOpcode>();
+  }
+}
+
+uint8_t LoadStoreAccessOf(I32 i) {
+  switch (i) {
+    case I32::SLoad8:
+    case I32::SLoadOff8:
+    case I32::Store8:
+    case I32::StoreOff8:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI8) |
+          v8::MemoryAccess::SignExtendField::encode(true));
+    case I32::ULoad8:
+    case I32::ULoadOff8:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI8) |
+          v8::MemoryAccess::SignExtendField::encode(false));
+    case I32::SLoad16:
+    case I32::SLoadOff16:
+    case I32::Store16:
+    case I32::StoreOff16:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI16) |
+          v8::MemoryAccess::SignExtendField::encode(true));
+    case I32::ULoad16:
+    case I32::ULoadOff16:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI16) |
+          v8::MemoryAccess::SignExtendField::encode(false));
+    case I32::Load32:
+    case I32::LoadOff32:
+    case I32::Store32:
+    case I32::StoreOff32:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI32) |
+          v8::MemoryAccess::SignExtendField::encode(true));
+    default:
+      return 0;
+  }
+}
+
+uint8_t LoadStoreAccessOf(const Expr& e) {
+  if (e.type() == RType::I32) {
+    return LoadStoreAccessOf(e.i32());
+  }
+
+  return 0;
+}
+
+uint8_t LoadStoreAccessOf(const Stmt& s) {
+  switch (s) {
+    case Stmt::I32Store8:
+    case Stmt::I32StoreOff8:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI8) |
+          v8::MemoryAccess::SignExtendField::encode(true));
+    case Stmt::I32Store16:
+    case Stmt::I32StoreOff16:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI16) |
+          v8::MemoryAccess::SignExtendField::encode(true));
+    case Stmt::I32Store32:
+    case Stmt::I32StoreOff32:
+      return static_cast<uint8_t>(
+          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI32) |
+          v8::MemoryAccess::SignExtendField::encode(true));
+    default:
+      return 0;
   }
 }
 

@@ -33,7 +33,61 @@ enum MemType {
   kMemF32 = 8,
   kMemF64 = 9
 };
+*/
+// ----------------------------------------------------------------------------
+// BitField is a help template for encoding and decode bitfield with
+// unsigned content.
 
+template<class T, int shift, int size, class U>
+class BitFieldBase {
+ public:
+  // A type U mask of bit field.  To use all bits of a type U of x bits
+  // in a bitfield without compiler warnings we have to compute 2^x
+  // without using a shift count of x in the computation.
+  static const U kOne = static_cast<U>(1U);
+  static const U kMask = ((kOne << shift) << size) - (kOne << shift);
+  static const U kShift = shift;
+  static const U kSize = size;
+  static const U kNext = kShift + kSize;
+
+  // Value for the field with all bits set.
+  static const T kMax = static_cast<T>((kOne << size) - 1);
+
+  // Tells whether the provided value fits into the bit field.
+  static bool is_valid(T value) {
+    return (static_cast<U>(value) & ~static_cast<U>(kMax)) == 0;
+  }
+
+  // Returns a type U with the bit field value encoded.
+  static U encode(T value) {
+    return static_cast<U>(value) << shift;
+  }
+
+  // Returns a type U with the bit field value updated.
+  static U update(U previous, T value) {
+    return (previous & ~kMask) | encode(value);
+  }
+
+  // Extracts the bit field from the value.
+  static T decode(U value) {
+    return static_cast<T>((value & kMask) >> shift);
+  }
+};
+
+
+template <class T, int shift, int size>
+class BitField8 : public BitFieldBase<T, shift, size, uint8_t> {};
+
+
+template <class T, int shift, int size>
+class BitField16 : public BitFieldBase<T, shift, size, uint16_t> {};
+
+
+template<class T, int shift, int size>
+class BitField : public BitFieldBase<T, shift, size, uint32_t> { };
+
+template<class T, int shift, int size>
+class BitField64 : public BitFieldBase<T, shift, size, uint64_t> { };
 // Functionality related to encoding memory accesses.
 struct MemoryAccess {
   // Atomicity annotations for access to the memory and globals.
@@ -57,8 +111,7 @@ struct MemoryAccess {
   typedef BitField<Atomicity, 4, 2> AtomicityField;
 };
 
-typedef Signature<LocalType> FunctionSig;
-*/
+
 // Statements.
 #define FOREACH_STMT_OPCODE(V) \
   V(Nop, 0x00, _)              \
@@ -296,6 +349,7 @@ enum WasmOpcode {
       FOREACH_EXPR_OPCODE(DECLARE_NAMED_ENUM)
 #undef DECLARE_NAMED_ENUM
 };
+
 /*
 // A collection of opcode-related static methods.
 class WasmOpcodes {

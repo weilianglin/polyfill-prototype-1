@@ -30,7 +30,8 @@ function run() {
 
 cases="primes
 copy
-corrections"
+corrections
+memops"
 
 for case in $cases
 do
