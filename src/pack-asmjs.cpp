@@ -3,6 +3,9 @@
 #include "shared.h"
 #include "unpack.h"
 #include "cashew/parser.h"
+#ifdef V8_FORMAT
+#include "wasm-opcodes-v8.h"
+#endif
 
 #include <unordered_map>
 #include <algorithm>
@@ -35,6 +38,26 @@ union_cast(From from)
   return u.to;
 }
 
+#ifdef V8_FORMAT
+#define DELCARE_OPCODE(OpcodeType)               \
+  v8::WasmOpcode opcode(const OpcodeType& op);
+#else
+#define DELCARE_OPCODE(OpcodeType)               \
+  OpcodeType opcode(const OpcodeType& op) {      \
+    return op;                                   \
+  }
+#endif
+
+
+
+#define OPCODE_TYPE_LIST(V)    \
+  V(Expr)                      \
+  V(Stmt)                      \
+  V(ExprWithImm)               \
+  V(StmtWithImm)
+
+OPCODE_TYPE_LIST(DELCARE_OPCODE)
+
 // =================================================================================================
 // Output writing
 
@@ -48,6 +71,9 @@ public:
   Out(std::ostream& os) : os_(os) {}
 
   template <class T> void fixed_width(T);
+#ifdef V8_FORMAT
+  void code(v8::WasmOpcode w) { u8(w); }
+#endif
   void code(Stmt s) { u8(s); }
   void code(SwitchCase c) { u8(c); }
   void code(I32 i) { assert(i < I32::Bad); u8(i); }
@@ -65,6 +91,10 @@ public:
   inline void imm_u32(uint32_t u32);
   inline void imm_s32(int32_t s32);
   void c_str(const char*);
+#ifdef V8_FORMAT
+  long tellp() { return os_.tellp(); }
+  void seekp(long pos) { os_.seekp(pos); }
+#endif
 };
 
 template <class T>
@@ -82,15 +112,25 @@ Out::fixed_width(T t)
 void inline
 Out::code(ExprWithImm e, uint8_t imm)
 {
+#ifdef V8_FORMAT
+  u8(opcode(e));
+  imm_u32(imm);
+#else
   assert(imm < ImmLimit);
   u8(PackOpWithImm(e.raw_code(), imm));
+#endif
 }
 
 void inline
 Out::code(StmtWithImm s, uint8_t imm)
 {
+#ifdef V8_FORMAT
+  u8(opcode(s));
+  imm_u32(imm);
+#else
   assert(imm < ImmLimit);
   u8(PackOpWithImm(uint8_t(s), imm));
+#endif
 }
 
 void inline
@@ -616,6 +656,9 @@ public:
 // =================================================================================================
 // Module
 
+#ifdef V8_FORMAT
+class StringSegment;
+#endif
 class Function
 {
   Signature sig_;
@@ -630,6 +673,15 @@ class Function
   uint32_t f64_temp_;
   const AstNode* body_;
   unordered_map<IString, uint32_t> label_to_depth_;
+#ifdef V8_FORMAT
+  StringSegment* string_seg_;  // only for exported functions, set when analyzing the export statement
+  long patch_pos_;  // set when emitting function info segment
+  long code_start_;  // set when starting to emit function body
+  long code_end_;  // set when finishing function body
+  bool exported_;  // set when analyzing the export statement
+  uint32_t block_depth_;
+  vector<uint32_t> depth_stack_; // depth stack of loop or switch
+#endif
 
   void add_var(IString name, Type type)
   {
@@ -648,6 +700,14 @@ public:
   , f32_temp_(UINT32_MAX)
   , f64_temp_(UINT32_MAX)
   , body_(nullptr)
+#ifdef V8_FORMAT
+  , string_seg_(nullptr)
+  , patch_pos_(0)
+  , code_start_(0)
+  , code_end_(0)
+  , exported_(false)
+  , block_depth_(0)
+#endif
   {}
 
   void add_arg(IString name, Type type)
@@ -702,21 +762,52 @@ public:
     sig_.ret = ret;
   }
 
+#ifdef V8_FORMAT
+  void set_string_seg(StringSegment* ss) { string_seg_ = ss; }
+  void set_patch_position(long pos) { patch_pos_ = pos; }
+  void set_code_start(long start) { code_start_ = start; }
+  void set_code_end(long end) { code_end_ = end; }
+  void set_exported(bool exported) { exported_ = exported; }
+  void inc_block_depth() { block_depth_++; }
+  void dec_block_depth() { block_depth_--; }
+  void push_loop_switch() { depth_stack_.push_back(block_depth_); inc_block_depth(); }
+  void pop_loop_switch() { assert(!depth_stack_.empty()); depth_stack_.pop_back(); dec_block_depth(); }
+  uint32_t closest_loop_switch() const
+  {
+    assert(!depth_stack_.empty());
+    return block_depth_ - depth_stack_.back() - 1;
+  }
+#endif
+
   void push_label(IString name)
   {
+#ifdef V8_FORMAT
+    uint32_t depth = block_depth_;
+#else
+    uint32_t depth = label_to_depth_.size();
+#endif
     assert(label_to_depth_.find(name) == label_to_depth_.end());
-    label_to_depth_.emplace(name, label_to_depth_.size());
+    label_to_depth_.emplace(name, depth);
   }
 
   void pop_label(IString name)
   {
-    assert(label_to_depth_.find(name)->second == label_to_depth_.size() - 1);
+#ifdef V8_FORMAT
+    uint32_t depth = block_depth_;
+#else
+    uint32_t depth = label_to_depth_.size() - 1;
+#endif
+    assert(label_to_depth_.find(name)->second == depth);
     label_to_depth_.erase(name);
   }
 
   uint32_t label_depth(IString name) const
   {
+#ifdef V8_FORMAT
+    return block_depth_ - label_to_depth_.find(name)->second - 1;
+#else
     return label_to_depth_.find(name)->second;
+#endif
   }
 
   const Signature& sig() const { return sig_; }
@@ -734,6 +825,13 @@ public:
   const AstNode* body() const { return body_; }
   uint32_t f32_temp() const { assert(f32_temp_ != UINT32_MAX); return f32_temp_; }
   uint32_t f64_temp() const { assert(f64_temp_ != UINT32_MAX); return f64_temp_; }
+#ifdef V8_FORMAT
+  StringSegment* string_seg() const { return string_seg_; }
+  long patch_position() const { return patch_pos_; }
+  long code_start() const { return code_start_; }
+  long code_end() const { return code_end_; }
+  bool is_exported() const { return exported_; }
+#endif
 };
 
 enum class PreTypeCode { Neg, Add, Sub, Mul, Eq, NEq, Abs, Ceil, Floor, Sqrt, Comma };
@@ -834,14 +932,25 @@ struct FuncImportSignature
 
   uint32_t sig_index;
   uint32_t func_imp_sig_index;
+#ifdef V8_FORMAT
+  long patch_pos_;
+#endif
 };
 
 struct FuncImport
 {
+#ifdef V8_FORMAT
+  FuncImport(IString external, StringSegment* ss = NULL)
+    : external(external), string_seg(ss) {}
+#else
   FuncImport(IString external) : external(external) {}
+#endif
 
   IString external;
   vector<FuncImportSignature> sigs;
+#ifdef V8_FORMAT
+  StringSegment* string_seg;
+#endif
 };
 
 struct FuncPtrTable
@@ -857,10 +966,20 @@ struct FuncPtrTable
 
 struct Global
 {
+#ifdef V8_FORMAT
+  Global(Type type, uint32_t index, StringSegment* ss = NULL)
+  : type(type)
+  , index(index)
+  , string_seg(ss) {}
+#else
   Global(Type type, uint32_t index) : type(type), index(index) {}
+#endif
 
   Type type;
   uint32_t index;
+#ifdef V8_FORMAT
+  StringSegment* string_seg;
+#endif
 };
 
 struct Export
@@ -870,6 +989,89 @@ struct Export
   IString external;
   uint32_t internal;
 };
+
+#ifdef V8_FORMAT
+class DataSegment {
+public:
+  enum DataType {Int32, Int64, Float32, Float64, String};
+  DataSegment(DataType type, bool init) : type_(type), init_(init), src_offset_(-1) {}
+  virtual ~DataSegment() {};
+  bool is_string() { return type_ == String; }
+  void set_src_offset(uint32_t src_offset) {  src_offset_ = src_offset; }
+  uint32_t get_src_offset() { return src_offset_; }
+  virtual uint32_t get_data_size() = 0;
+  void write_info(Module& m, uint32_t& offset);
+  virtual void write_data(Module& m) = 0;
+
+private:
+  DataType type_;
+  bool init_;
+  uint32_t src_offset_;
+};
+
+class Int32Segment : public DataSegment {
+  uint32_t u32_;
+public:
+  Int32Segment(uint32_t u32) : DataSegment(Int32, true), u32_(u32) {}
+  virtual uint32_t get_data_size() { return 4; }
+  virtual void write_data(Module& m);
+};
+
+class Int64Segment : public DataSegment {
+  uint64_t u64_;
+public:
+  Int64Segment(uint64_t u64) : DataSegment(Int64, true), u64_(u64) {}
+  virtual uint32_t get_data_size() { return 8; }
+  virtual void write_data(Module& m);
+};
+
+class Float32Segment : public DataSegment {
+  float f32_;
+public:
+  Float32Segment(float f32) : DataSegment(Float32, true), f32_(f32) {}
+  virtual uint32_t get_data_size() { return 4; }
+  virtual void write_data(Module& m);
+};
+
+class Float64Segment : public DataSegment {
+  double f64_;
+public:
+  Float64Segment(double f64) : DataSegment(Float64, true), f64_(f64) {}
+  virtual uint32_t get_data_size() { return 8; }
+  virtual void write_data(Module& m);
+};
+
+class StringSegment : public DataSegment {
+  IString str_;
+public:
+  StringSegment(IString str) : DataSegment(String, true), str_(str) {}
+  IString str() { return str_; }
+  virtual uint32_t get_data_size() { return strlen(str_.c_str()) + 1; }
+  virtual void write_data(Module& m);
+};
+
+class DataSegments {
+  vector<DataSegment*> data_segments_;
+  long data_segment_info_pos_;
+  uint32_t dest_offset_;
+
+public:
+  DataSegments() : data_segment_info_pos_(0), dest_offset_(0) { }
+  ~DataSegments() {
+    for(auto ds : data_segments_) {
+      delete ds;
+    }
+  }
+  void add_data_segment(DataSegment* d) { data_segments_.push_back(d); };
+  // increase dest_offset pointer
+  // need to consider the alignment requirement
+  void write_data_seg_info(Module& m);
+  // the src_offset is fixed here and need to back patch
+  void write_data_body(Module& m);
+  uint32_t get_data_segment_num() { return data_segments_.size(); };
+  void patch_src_offset(Module& m);
+};
+#endif
 
 class Module
 {
@@ -918,6 +1120,11 @@ class Module
   unordered_map<IString, StdLibFunc> stdlib_funcs_;
   unordered_map<IString, HeapView> heap_views_;
   vector<Export> exports_;
+
+#ifdef V8_FORMAT
+  vector<Global> globals_list_;
+  DataSegments data_segments_;
+#endif
 
   bool finished_analysis_;
 
@@ -977,12 +1184,36 @@ public:
     num_global_i32_zero_ = i32_zero.size();
     num_global_f32_zero_ = f32_zero.size();
     num_global_f64_zero_ = f64_zero.size();
-    for (auto name : i32_zero)
+    for (auto name : i32_zero) {
+#ifdef V8_FORMAT
+      StringSegment* ss = new StringSegment(name);
+      data_segments_.add_data_segment(ss);
+      globals_list_.push_back(Global(Type::I32, globals_.size(), ss));
+      globals_.emplace(name, Global(Type::I32, globals_.size(), ss));
+#else
       globals_.emplace(name, Global(Type::I32, globals_.size()));
-    for (auto name : f32_zero)
+#endif
+    }
+    for (auto name : f32_zero) {
+#ifdef V8_FORMAT
+      StringSegment* ss = new StringSegment(name);
+      data_segments_.add_data_segment(ss);
+      globals_list_.push_back(Global(Type::F32, globals_.size(), ss));
+      globals_.emplace(name, Global(Type::F32, globals_.size(), ss));
+#else
       globals_.emplace(name, Global(Type::F32, globals_.size()));
-    for (auto name : f64_zero)
+#endif
+    }
+    for (auto name : f64_zero) {
+#ifdef V8_FORMAT
+      StringSegment* ss = new StringSegment(name);
+      data_segments_.add_data_segment(ss);
+      globals_list_.push_back(Global(Type::F64, globals_.size(), ss));
+      globals_.emplace(name, Global(Type::F64, globals_.size(), ss));
+#else
       globals_.emplace(name, Global(Type::F64, globals_.size()));
+#endif
+    }
     for (auto pair : i32_import) {
       globals_.emplace(pair.first, Global(Type::I32, globals_.size()));
       global_i32_imports_.push_back(pair.second);
@@ -1017,7 +1248,13 @@ public:
     assert(!finished_analysis_);
     assert_unique_global_name(internal);
     func_import_to_index_.emplace(internal, func_imps_.size());
+#ifdef V8_FORMAT
+    StringSegment* ss = new StringSegment(external);
+    func_imps_.emplace_back(FuncImport(external, ss));
+    data_segments_.add_data_segment(ss);
+#else
     func_imps_.emplace_back(external);
+#endif
   };
 
   uint32_t add_import_sig(IString internal, Signature&& sig)
@@ -1082,6 +1319,13 @@ public:
     assert(!finished_analysis_);
     assert(exports_.empty());
     auto result = func_to_index_.find(internal_name);
+#ifdef V8_FORMAT
+    // TODO: v8 binary format does not support returning single function
+    StringSegment* ss = new StringSegment(internal_name);
+    funcs_[result->second].set_string_seg(ss);
+    funcs_[result->second].set_exported(true);
+    data_segments_.add_data_segment(ss);
+#endif
     exports_.push_back(Export(IString(), result->second));
   }
 
@@ -1089,8 +1333,20 @@ public:
   {
     assert(!finished_analysis_);
     auto result = func_to_index_.find(internal_name);
+#ifdef V8_FORMAT
+    StringSegment* ss = new StringSegment(external);
+    funcs_[result->second].set_string_seg(ss);
+    funcs_[result->second].set_exported(true);
+    data_segments_.add_data_segment(ss);
+#endif
     exports_.push_back(Export(external, result->second));
   }
+
+#ifdef V8_FORMAT
+  uint32_t num_funcs() {
+    return funcs_.size() + num_func_imp_sigs_;
+  }
+#endif
 
   void add_lit(NumLit lit, unsigned lshift)
   {
@@ -1171,6 +1427,9 @@ public:
   Out& write() { assert(finished_analysis_); return out_; }
 
   Global global(IString name) const { return globals_.find(name)->second; }
+#ifdef V8_FORMAT
+  uint32_t num_globals() const { return globals_.size(); }
+#endif
   uint32_t num_global_i32_zero() const { return num_global_i32_zero_; }
   uint32_t num_global_f64_zero() const { return num_global_f64_zero_; }
   uint32_t num_global_f32_zero() const { return num_global_f32_zero_; }
@@ -1198,6 +1457,9 @@ public:
 
   bool lit_has_pool_index(NumLit lit, unsigned lshift, uint32_t *index) const
   {
+#ifdef V8_FORMAT
+    return false;
+#endif
     assert(finished_analysis_);
     switch (lit.type()) {
       case Type::I32: {
@@ -1229,8 +1491,114 @@ public:
   const vector<I32Lit>& i32s() const { assert(finished_analysis_); return i32s_; }
   const vector<F32Lit>& f32s() const { assert(finished_analysis_); return f32s_; }
   const vector<F64Lit>& f64s() const { assert(finished_analysis_); return f64s_; }
+
+#ifdef V8_FORMAT
+  DataSegments data_segments() { return data_segments_; };
+  void write_global_variable_section();
+  void write_data_seg_info_section() { data_segments_.write_data_seg_info(*this); }
+  void write_data_body_section() { data_segments_.write_data_body(*this); }
+  uint16_t num_data_segments() {
+    return static_cast<uint16_t>(data_segments_.get_data_segment_num());
+  }
+  void patch_global_section();
+  void patch_data_seg_info_section() {  data_segments_.patch_src_offset(*this); }
+#endif
 };
 
+#ifdef V8_FORMAT
+void Module::patch_global_section() {
+  // global section is fixed at the offset of 8 bytes.
+  uint32_t global_offset = 8;
+  for (auto& g : globals_list_) {
+    write().seekp(global_offset);
+    assert(g.string_seg->get_src_offset() > 0);
+    write().fixed_width<uint32_t>(g.string_seg->get_src_offset());
+    global_offset += 6;
+  }
+}
+
+uint8_t get_v8_mem_type_code(uint8_t t) {
+  switch(t) {
+    case 0:  // i32
+      return 4;
+    case 1:  // f32
+      return 8;
+    case 2:  // f64
+      return 9;
+    default:
+      return 0;
+  }
+}
+
+void Module::write_global_variable_section() {
+  for (auto& g : globals_list_) {
+    write().fixed_width<uint32_t>(0);  // name offset
+    // TODO: fix it after introducing V8 opcode
+    write().fixed_width<uint8_t>(get_v8_mem_type_code(static_cast<uint8_t>(g.type)));  // type
+    write().fixed_width<uint8_t>(0);  // exported
+  }
+}
+
+void DataSegments::patch_src_offset(Module& m) {
+  long ds_info_offset = data_segment_info_pos_;
+  const int ds_info_size = 13;
+  for (auto s : data_segments_) {
+    m.write().seekp(ds_info_offset + 4);
+    m.write().fixed_width<uint32_t>(s->get_src_offset());
+    ds_info_offset += ds_info_size;
+  }
+}
+
+void DataSegments::write_data_seg_info(Module& m) {
+  data_segment_info_pos_ = m.write().tellp();
+
+  for (auto s : data_segments_) {
+    s->write_info(m, dest_offset_);
+  }
+}
+
+void DataSegments::write_data_body(Module& m) {
+  for (auto s : data_segments_) {
+    s->write_data(m);
+  }
+}
+
+void DataSegment::write_info(Module& m, uint32_t& offset) {
+  // TODO: data alignment in the dest linear memory address
+  uint32_t data_size = get_data_size();
+  m.write().fixed_width<uint32_t>(offset);  // dest_offset
+  m.write().fixed_width<uint32_t>(0);  // src_offset needs back patch
+  m.write().fixed_width<uint32_t>(data_size);  // data size
+  m.write().fixed_width<uint8_t>(init_);  // init
+
+  offset += data_size;
+}
+
+void Int32Segment::write_data(Module& m) {
+  set_src_offset(m.write().tellp());
+  m.write().fixed_width<uint32_t>(u32_);
+}
+
+void Int64Segment::write_data(Module& m) {
+  set_src_offset(m.write().tellp());
+  m.write().fixed_width<uint64_t>(u64_);
+}
+
+void Float32Segment::write_data(Module& m) {
+  set_src_offset(m.write().tellp());
+  m.write().fixed_width<uint32_t>(f32_);
+}
+
+void Float64Segment::write_data(Module& m) {
+  set_src_offset(m.write().tellp());
+  m.write().fixed_width<uint64_t>(f64_);
+}
+
+void StringSegment::write_data(Module& m) {
+  set_src_offset(m.write().tellp());
+  m.write().c_str(str_.c_str());
+}
+#endif
 // =================================================================================================
 // Numeric literals
 
@@ -2378,22 +2746,27 @@ write_num_lit(Module& m, Function& f, NumLit lit, unsigned lshift = 0)
     switch (lit.type()) {
       case Type::I32: {
         uint32_t u32 = lit.uint32() << lshift;
+#ifdef V8_FORMAT
+        m.write().code(opcode(I32::LitImm));
+        m.write().fixed_width<uint32_t>(u32);
+#else
         if (u32 < ImmLimit) {
           m.write().code(I32WithImm::LitImm, u32);
         } else {
           m.write().code(I32::LitImm);
           m.write().imm_u32(u32);
         }
+#endif
         break;
       }
       case Type::F32:
         assert(lshift == 0);
-        m.write().code(F32::LitImm);
+        m.write().code(opcode(F32::LitImm));
         m.write().fixed_width<float>(lit.float32());
         break;
       case Type::F64:
         assert(lshift == 0);
-        m.write().code(F64::LitImm);
+        m.write().code(opcode(F64::LitImm));
         m.write().fixed_width<double>(lit.float64());
         break;
     }
@@ -2443,7 +2816,7 @@ write_bitwise(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
     return;
   }
 
-  m.write().code(binary.expr);
+  m.write().code(opcode(binary.expr));
   write_expr(m, f, binary.lhs);
   write_expr(m, f, binary.rhs);
 }
@@ -2465,13 +2838,13 @@ write_assign(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 {
   uint32_t index = binary.lhs.as<NameNode>().index;
   if (ctx == Ctx::Expr) {
-    m.write().code(binary.expr);
+    m.write().code(opcode(binary.expr));
     m.write().imm_u32(index);
   } else {
     if (binary.stmt_with_imm != StmtWithImm::Bad && index < ImmLimit) {
       m.write().code(binary.stmt_with_imm, index);
     } else {
-      m.write().code(binary.stmt);
+      m.write().code(opcode(binary.stmt));
       m.write().imm_u32(index);
     }
   }
@@ -2541,14 +2914,16 @@ write_binary(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
       break;
     case BinaryNode::Comma:
       assert(ctx == Ctx::Expr);
-      m.write().code(binary.expr);
+      m.write().code(opcode(binary.expr));
+#ifndef V8_FORMAT
       m.write().code(binary.comma_lhs_type);
+#endif
       write_expr(m, f, binary.lhs);
       write_expr(m, f, binary.rhs);
       break;
     case BinaryNode::Generic:
       assert(ctx == Ctx::Expr);
-      m.write().code(binary.expr);
+      m.write().code(opcode(binary.expr));
       write_expr(m, f, binary.lhs);
       write_expr(m, f, binary.rhs);
       break;
@@ -2563,7 +2938,7 @@ write_name(Module& m, Function& f, const NameNode& name)
   } else if (name.expr.is_bad()) {
     write_num_lit(m, f, NumLit(m.stdlib_double(name.str)));
   } else {
-    m.write().code(name.expr);
+    m.write().code(opcode(name.expr));
     m.write().imm_u32(name.index);
   }
 }
@@ -2573,24 +2948,43 @@ write_prefix(Module& m, Function& f, const PrefixNode& prefix, Ctx ctx)
 {
   if (is_double_coerced_call(prefix)) {
     if (!prefix.expr.is_bad())
-      m.write().code(prefix.expr);
+      m.write().code(opcode(prefix.expr));
     write_call(m, f, prefix.kid.as<CallNode>(), ctx);
     return;
   }
 
   assert(ctx == Ctx::Expr);
 
+#ifdef V8_FORMAT
+  // I32::Neg -foo => foo*(-1)
+  if (prefix.expr == I32::Neg) {
+    m.write().code(v8::kExprI32Mul);
+    write_expr(m, f, prefix.kid);
+    m.write().code(v8::kExprI32Const);
+    m.write().fixed_width<int32_t>(-1);
+    return;
+  }
+  // I32::BitNot ~foo => foo^(~0)
+  if (prefix.expr == I32::BitNot) {
+    m.write().code(v8::kExprI32Xor);
+    write_expr(m, f, prefix.kid);
+    m.write().code(v8::kExprI32Const);
+    m.write().fixed_width<uint32_t>(0xffffffff);
+    return;
+  }
+#endif
+
   if (prefix.expr.is_bad())
     assert(prefix.op.equals("+") || prefix.op.equals("~"));
   else
-    m.write().code(prefix.expr);
+    m.write().code(opcode(prefix.expr));
   write_expr(m, f, prefix.kid);
 }
 
 void
 write_ternary(Module& m, Function& f, const TernaryNode& ternary)
 {
-  m.write().code(ternary.expr);
+  m.write().code(opcode(ternary.expr));
   write_expr(m, f, ternary.cond);
   write_expr(m, f, ternary.lhs);
   write_expr(m, f, ternary.rhs);
@@ -2602,19 +2996,25 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
   switch (call.kind) {
     case CallNode::Import: {
       if (ctx == Ctx::Expr)
-        m.write().code(call.expr);
+        m.write().code(opcode(call.expr));
       else
-        m.write().code(call.stmt);
+        m.write().code(opcode(call.stmt));
       auto& func_imp_sig = m.func_imp(call.callee.as<NameNode>().str).sigs[call.import_preindex];
+#ifdef V8_FORMAT
+      uint32_t import_func_index_offset = m.funcs().size();
+      uint32_t import_func_index = import_func_index_offset + func_imp_sig.func_imp_sig_index;
+      m.write().imm_u32(import_func_index);
+#else
       m.write().imm_u32(func_imp_sig.func_imp_sig_index);
+#endif
       assert(call.compute_length() == m.sig(func_imp_sig.sig_index).args.size());
       break;
     }
     case CallNode::Internal: {
       if (ctx == Ctx::Expr)
-        m.write().code(call.expr);
+        m.write().code(opcode(call.expr));
       else
-        m.write().code(call.stmt);
+        m.write().code(opcode(call.stmt));
       auto func_index = m.func_index(call.callee.as<NameNode>().str);
       m.write().imm_u32(func_index);
       assert(call.compute_length() == m.func(func_index).sig().args.size());
@@ -2639,7 +3039,23 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
       break;
     case CallNode::FixedArityBuiltin:
       assert(ctx == Ctx::Expr);
-      m.write().code(call.expr);
+#ifdef V8_FORMAT
+      // I32::Abs value >=0 ? value : -value
+      if (call.expr == I32::Abs) {
+        m.write().code(v8::kExprIf);
+        m.write().code(v8::kExprI32GeS);
+        write_expr(m, f, *call.first);
+        m.write().code(v8::kExprI32Const);
+        m.write().fixed_width<uint32_t>(0);
+        write_expr(m, f, *call.first);
+        m.write().code(v8::kExprI32Mul);
+        write_expr(m, f, *call.first);
+        m.write().code(v8::kExprI32Const);
+        m.write().fixed_width<int32_t>(-1);
+        return;
+      }
+#endif
+      m.write().code(opcode(call.expr));
       break;
     case CallNode::Fround:
       assert(call.compute_length() == 1);
@@ -2649,7 +3065,7 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
           return;
         }
       } else {
-        m.write().code(call.expr);
+        m.write().code(opcode(call.expr));
       }
       break;
   }
@@ -2699,7 +3115,7 @@ write_expr(Module& m, Function& f, const AstNode& expr)
 void
 write_return(Module& m, Function& f, const ReturnNode& ret)
 {
-  m.write().code(Stmt::Ret);
+  m.write().code(opcode(Stmt::Ret));
   if (ret.expr)
     write_expr(m, f, *ret.expr);
 }
@@ -2711,7 +3127,11 @@ write_stmt_list(Module& m, Function& f, const AstNode* stmts)
   for (const AstNode* p = stmts; p; p = p->next)
     num_stmts++;
 
+#ifdef V8_FORMAT
+  m.write().fixed_width<uint8_t>(num_stmts);
+#else
   m.write().imm_u32(num_stmts);
+#endif
   for (const AstNode* n = stmts; n; n = n->next)
     write_stmt(m, f, *n);
 }
@@ -2719,20 +3139,26 @@ write_stmt_list(Module& m, Function& f, const AstNode* stmts)
 void
 write_block(Module& m, Function& f, const BlockNode& block)
 {
-  m.write().code(Stmt::Block);
+  m.write().code(opcode(Stmt::Block));
+#ifdef V8_FORMAT
+  f.inc_block_depth();
+#endif
   write_stmt_list(m, f, block.first);
+#ifdef V8_FORMAT
+  f.dec_block_depth();
+#endif
 }
 
 void
 write_if(Module& m, Function& f, const IfNode& i)
 {
   if (i.if_false) {
-    m.write().code(Stmt::IfElse);
+    m.write().code(opcode(Stmt::IfElse));
     write_expr(m, f, i.cond);
     write_stmt(m, f, i.if_true);
     write_stmt(m, f, *i.if_false);
   } else {
-    m.write().code(Stmt::IfThen);
+    m.write().code(opcode(Stmt::IfThen));
     write_expr(m, f, i.cond);
     write_stmt(m, f, i.if_true);
   }
@@ -2741,23 +3167,50 @@ write_if(Module& m, Function& f, const IfNode& i)
 void
 write_while(Module& m, Function& f, const WhileNode& w)
 {
+#ifdef V8_FORMAT
+  m.write().code(v8::kStmtLoop);
+  f.push_loop_switch();
+  m.write().fixed_width<uint8_t>(1);
+  m.write().code(v8::kStmtIfThen);
+  write_expr(m, f, w.cond);
+  write_stmt(m, f, w.body);
+  m.write().code(v8::kStmtBreak);
+  m.write().fixed_width<uint8_t>(0);
+  f.pop_loop_switch();
+#else
   m.write().code(Stmt::While);
   write_expr(m, f, w.cond);
   write_stmt(m, f, w.body);
+#endif
 }
 
 void
 write_do(Module& m, Function& f, const DoNode& d)
 {
+#ifdef V8_FORMAT
+  m.write().code(v8::kStmtLoop);
+  f.push_loop_switch();
+  m.write().fixed_width<uint8_t>(2);
+  write_stmt(m, f, d.body);
+  m.write().code(v8::kStmtIf);
+  m.write().code(v8::kExprBoolNot);
+  write_expr(m, f, d.cond);
+  m.write().code(v8::kStmtBreak);
+  m.write().fixed_width<uint8_t>(0);
+  f.pop_loop_switch();
+#else
   m.write().code(Stmt::Do);
   write_stmt(m, f, d.body);
   write_expr(m, f, d.cond);
+#endif
 }
 
 void
 write_label(Module& m, Function& f, const LabelNode& l)
 {
+#ifndef V8_FORMAT
   m.write().code(Stmt::Label);
+#endif
   f.push_label(l.str);
   write_stmt(m, f, l.stmt);
   f.pop_label(l.str);
@@ -2767,29 +3220,68 @@ void
 write_break(Module& m, Function& f, const BreakNode& b)
 {
   if (!b.str) {
-    m.write().code(Stmt::Break);
+    m.write().code(opcode(Stmt::Break));
+#ifdef V8_FORMAT
+    m.write().fixed_width<uint8_t>(f.closest_loop_switch());
+#endif
     return;
   }
 
-  m.write().code(Stmt::BreakLabel);
+  m.write().code(opcode(Stmt::BreakLabel));
+#ifdef V8_FORMAT
+  m.write().fixed_width<uint8_t>(f.label_depth(b.str));
+#else
   m.write().imm_u32(f.label_depth(b.str));
+#endif
 }
 
 void
 write_continue(Module& m, Function& f, const ContinueNode& c)
 {
   if (!c.str) {
-    m.write().code(Stmt::Continue);
+    m.write().code(opcode(Stmt::Continue));
+#ifdef V8_FORMAT
+    m.write().fixed_width<uint8_t>(f.closest_loop_switch());
+#endif
     return;
   }
 
-  m.write().code(Stmt::ContinueLabel);
+  m.write().code(opcode(Stmt::ContinueLabel));
+#ifdef V8_FORMAT
+  m.write().fixed_width<uint8_t>(f.label_depth(c.str));
+#else
   m.write().imm_u32(f.label_depth(c.str));
+#endif
 }
 
 void
 write_switch(Module& m, Function& f, const SwitchNode& s)
 {
+#ifdef V8_FORMAT
+  m.write().code(v8::kStmtSwitch);
+  f.push_loop_switch();
+  m.write().fixed_width<uint8_t>(s.compute_length());
+  write_expr(m, f, s.expr);
+  int32_t caseval = 0;
+  for (const CaseNode* c = s.first; c; c = c->next) {
+    assert(c->label);
+    assert(NumLit(m, *c->label).int32() == caseval++);
+    if (!c->first) {
+      m.write().code(v8::kStmtNop);
+    } else if (c->first == c->last) {
+      write_stmt(m, f, c->first->stmt);
+    } else {
+      // Write a block
+      m.write().code(v8::kStmtBlock);
+      f.inc_block_depth();
+      m.write().fixed_width<uint8_t>(c->compute_length());
+      for (const CaseStmtNode* s = c->first; s; s = s->next)
+        write_stmt(m, f, s->stmt);
+      f.dec_block_depth();
+    }
+  }
+  f.pop_loop_switch();
+#else
   m.write().code(Stmt::Switch);
   m.write().imm_u32(s.compute_length());
   write_expr(m, f, s.expr);
@@ -2826,6 +3318,7 @@ write_switch(Module& m, Function& f, const SwitchNode& s)
       }
     }
   }
+#endif
 }
 
 void
@@ -2892,9 +3385,176 @@ write_export_section(Module& m)
   }
 }
 
+#ifdef V8_FORMAT
+void write_module_header(Module& m) {
+  // TODO: where to get the size of linear memory on the asm.js
+  m.write().fixed_width<uint8_t>(20); // 1mb linear memory size
+  m.write().fixed_width<uint8_t>(1);  // always export the memory as a named property
+  m.write().fixed_width<uint16_t>(m.num_globals());  // number of globals
+  m.write().fixed_width<uint16_t>(m.num_funcs());  // number of functions, including locals and imports
+  m.write().fixed_width<uint16_t>(m.num_data_segments());  // number of data in the data segments
+}
+
+void write_global_variable_section(Module& m) {
+  m.write_global_variable_section();
+}
+
+uint8_t get_v8_type_code(uint8_t t) {
+  switch(t) {
+    case 0:
+      return 1;
+    case 1:
+      return 3;
+    case 2:
+      return 4;
+    case 4:
+      return 0;
+  }
+  return 0;
+}
+
+void
+write_function_info_section(Module& m)
+{
+  // 1. local funcs
+  for (auto& f : m.funcs()) {
+    m.write().fixed_width<uint8_t>(f.sig().args_size());
+    // m.write().code(f.sig().ret);
+    m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(f.sig().ret)));
+    for (auto& t : f.sig().args) {
+      // m.write().code(t);
+      m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(t)));
+    }
+
+    long pos = m.write().tellp();
+    f.set_patch_position(pos);
+    m.write().fixed_width<uint32_t>(0);  // Name offset
+    m.write().fixed_width<uint32_t>(0);  // Code start offset
+    m.write().fixed_width<uint32_t>(0);  // Code end offset
+    m.write().fixed_width<uint16_t>(f.num_i32_vars());  // local int32 count
+    m.write().fixed_width<uint16_t>(0);  // local int64 count
+    m.write().fixed_width<uint16_t>(f.num_f32_vars());  // local f32 count
+    m.write().fixed_width<uint16_t>(f.num_f64_vars());  // local f32 count
+    m.write().fixed_width<uint8_t>(0);  // exported
+    m.write().fixed_width<uint8_t>(0);  // external
+  }
+
+  // 2. import funcs from ffi
+  for (auto& fi : m.func_imps()) {
+    for (auto& fis : fi.sigs) {
+      const Signature& sig = m.sig(fis.sig_index);
+      m.write().fixed_width<uint8_t>(sig.args_size());
+      // m.write().code(sig.ret);
+      m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(sig.ret)));
+      for (auto& t : sig.args) {
+        // m.write().code(t);
+        m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(t)));
+      }
+
+      long pos = m.write().tellp();
+      fis.patch_pos_ = pos;
+      m.write().fixed_width<uint32_t>(0);  // Name offset
+      m.write().fixed_width<uint32_t>(0);  // Code start offset
+      m.write().fixed_width<uint32_t>(0);  // Code end offset
+      m.write().fixed_width<uint16_t>(0);  // local int32 count
+      m.write().fixed_width<uint16_t>(0);  // local int64 count
+      m.write().fixed_width<uint16_t>(0);  // local f32 count
+      m.write().fixed_width<uint16_t>(0);  // local f32 count
+      m.write().fixed_width<uint8_t>(0);  // exported
+      m.write().fixed_width<uint8_t>(1);  // external
+    }
+  }
+
+  // 3. import funcs from stdlib
+}
+
+void
+write_data_seg_info_section(Module& m) {
+  m.write_data_seg_info_section();
+}
+
+void
+write_function_body(Module& m, Function& f, const AstNode* stmts) {
+
+  for (const AstNode* n = stmts; n; n = n->next) {
+    write_stmt(m, f, *n);
+  }
+}
+
+void
+write_function_body_section(Module& m) {
+  for (auto& f : m.funcs()) {
+    f.set_code_start(m.write().tellp());
+    write_function_body(m, f, f.body());
+    f.set_code_end(m.write().tellp());
+  }
+}
+
+void
+write_data_body_section(Module& m) {
+  m.write_data_body_section();
+}
+
+void patch_offsets(Module& m) {
+  // 1. The offset of name, start and end of code in function info section
+  for (auto& f : m.funcs()) {
+    // name if exported
+    assert(f.patch_position() > 0);
+    m.write().seekp(f.patch_position());
+    if (f.is_exported()) {
+      StringSegment* ss = f.string_seg();
+      assert(ss != NULL && ss->get_src_offset() > 0);
+      m.write().fixed_width<uint32_t>(ss->get_src_offset());
+    } else {
+      m.write().fixed_width<uint32_t>(0);
+    }
+    // code start and end offset
+    m.write().fixed_width<uint32_t>(f.code_start());
+    m.write().fixed_width<uint32_t>(f.code_end());
+    // exported
+    m.write().seekp(f.patch_position() + 20);
+    m.write().fixed_width<uint8_t>(f.is_exported());
+  }
+
+  for (auto& fi : m.func_imps()) {
+    StringSegment* ss = fi.string_seg;
+    assert(ss != NULL && ss->get_src_offset() > 0);
+    for (auto& fis : fi.sigs) {
+      assert(fis.patch_pos_ > 0);
+      m.write().seekp(fis.patch_pos_);
+      m.write().fixed_width<uint32_t>(ss->get_src_offset());
+    }
+  }
+
+  // 2. name offset in the global variable section
+  m.patch_global_section();
+
+  // 3. src offset in the data segment info section
+  m.patch_data_seg_info_section();
+}
+#endif
+
 void
 write_module(Module& m)
 {
+#ifdef V8_FORMAT
+  // 1. module header
+  write_module_header(m);
+
+  // 2. global variable section
+  write_global_variable_section(m);
+
+  // 3. Function info section
+  write_function_info_section(m);
+  // 4. Data segment info section
+  write_data_seg_info_section(m);
+  // 5. Function Body
+  write_function_body_section(m);
+  // 6. Data Body
+  write_data_body_section(m);
+  // 7. patch all offset info
+  patch_offsets(m);
+#else
   m.write().fixed_width<uint32_t>(MagicNumber);
 
   // Bogus unpacked-size; to be patched in patch_unpacked_size.
@@ -2908,6 +3568,7 @@ write_module(Module& m)
   write_function_pointer_tables(m);
   write_function_definition_section(m);
   write_export_section(m);
+#endif
 }
 
 // =================================================================================================
@@ -3143,8 +3804,10 @@ try
   vector<uint8_t> out_bytes(out_stream.tellp());
   out_stream.seekg(0);
   out_stream.read((char*)out_bytes.data(), out_bytes.size());
+#ifndef V8_FORMAT
   uint32_t unpacked_size = asmjs::calculate_unpacked_size(out_bytes.data());
   asmjs::patch_unpacked_size(out_stream, unpacked_size);
+#endif
 
   return 0;
 }
