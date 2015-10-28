@@ -1,4 +1,5 @@
 var buffer = readbuffer("demo.wasm");
+WASM.verifyModule(buffer);
 var module = WASM.instantiateModule(buffer);
 
 var _start = performance.now();

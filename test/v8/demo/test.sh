@@ -1,4 +1,5 @@
 d8=~/work/v8/out/x64.release/d8
+packer=/home/user/work/wasm/ssg_webpup-wasmpolyfillv8/tools/pack-asmjs-v8
 
 function run() {
   if [ $# -lt 1 ]; then
@@ -22,6 +23,7 @@ function run() {
 
   if [ -e "${case}.wasm" ]; then
     echo "  === wasm ==="
+    $packer ${case}.js ${case}.wasm
     cp ${case}.wasm demo.wasm
     $d8 test-wasm.js
   fi
@@ -30,8 +32,7 @@ function run() {
 
 cases="primes
 copy
-corrections
-memops"
+corrections"
 
 for case in $cases
 do

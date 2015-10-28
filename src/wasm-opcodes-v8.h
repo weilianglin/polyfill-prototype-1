@@ -350,6 +350,23 @@ enum WasmOpcode {
 #undef DECLARE_NAMED_ENUM
 };
 
+enum WasmSectionDeclCode {
+  kDeclMemory = 0x00,
+  kDeclSignatures = 0x01,
+  kDeclFunctions = 0x02,
+  kDeclGlobals = 0x03,
+  kDeclDataSegments = 0x04,
+  kDeclFunctionTable = 0x05,
+  kDeclEnd = 0x06,
+};
+
+enum WasmFunctionDeclBit {
+  kDeclFunctionName = 0x01,
+  kDeclFunctionImport = 0x02,
+  kDeclFunctionLocals = 0x04,
+  kDeclFunctionExport = 0x08
+};
+
 /*
 // A collection of opcode-related static methods.
 class WasmOpcodes {

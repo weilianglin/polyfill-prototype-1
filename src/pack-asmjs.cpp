@@ -769,6 +769,7 @@ public:
   void set_patch_position(long pos) { patch_pos_ = pos; }
   void set_code_start(long start) { code_start_ = start; }
   void set_code_end(long end) { code_end_ = end; }
+  uint32_t body_size() { return code_end_ - code_start_; }
   void set_exported(bool exported) { exported_ = exported; }
   void inc_block_depth() { block_depth_++; }
   void dec_block_depth() { block_depth_--; }
@@ -1125,6 +1126,7 @@ class Module
 
 #ifdef V8_FORMAT
   vector<Global> globals_list_;
+  long globals_patch_offset_;
   DataSegments data_segments_;
 #endif
 
@@ -1509,10 +1511,9 @@ public:
 
 #ifdef V8_FORMAT
 void Module::patch_global_section() {
-  // global section is fixed at the offset of 8 bytes.
-  uint32_t global_offset = 8;
+  long global_offset = globals_patch_offset_;
   for (auto& g : globals_list_) {
-    write().seekp(global_offset);
+    write().seekp(globals_offset);
     assert(g.string_seg->get_src_offset() > 0);
     write().fixed_width<uint32_t>(g.string_seg->get_src_offset());
     global_offset += 6;
@@ -1533,11 +1534,15 @@ uint8_t get_v8_mem_type_code(uint8_t t) {
 }
 
 void Module::write_global_variable_section() {
-  for (auto& g : globals_list_) {
-    write().fixed_width<uint32_t>(0);  // name offset
-    // TODO: fix it after introducing V8 opcode
-    write().fixed_width<uint8_t>(get_v8_mem_type_code(static_cast<uint8_t>(g.type)));  // type
-    write().fixed_width<uint8_t>(0);  // exported
+  if (num_globals() > 0) {
+    write().fixed_width<uint8_t>(v8::kDeclGlobals);
+    write().imm_u32(num_globals());  // number of globals
+    globals_patch_offset_ = write().tellp();
+    for (auto& g : globals_list_) {
+      write().fixed_width<uint32_t>(0);  // name offset to be patched later
+      write().fixed_width<uint8_t>(get_v8_mem_type_code(static_cast<uint8_t>(g.type)));  // type
+      write().fixed_width<uint8_t>(0);  // exported
+    }
   }
 }
 
@@ -1552,10 +1557,13 @@ void DataSegments::patch_src_offset(Module& m) {
 }
 
 void DataSegments::write_data_seg_info(Module& m) {
-  data_segment_info_pos_ = m.write().tellp();
-
-  for (auto s : data_segments_) {
-    s->write_info(m, dest_offset_);
+  if (data_segments_.size() > 0) {
+    m.write().fixed_width<uint8_t>(v8::kDeclDataSegments);
+    m.write().imm_u32(data_segments_.size());
+    data_segment_info_pos_ = m.write().tellp();
+    for (auto s : data_segments_) {
+      s->write_info(m, dest_offset_);
+    }
   }
 }
 
@@ -1569,7 +1577,7 @@ void DataSegment::write_info(Module& m, uint32_t& offset) {
   // TODO: data alignment in the dest linear memory address
   uint32_t data_size = get_data_size();
   m.write().fixed_width<uint32_t>(offset);  // dest_offset
-  m.write().fixed_width<uint32_t>(0);  // src_offset needs back patch
+  m.write().fixed_width<uint32_t>(0);  // src_offset to be patched
   m.write().fixed_width<uint32_t>(data_size);  // data size
   m.write().fixed_width<uint8_t>(init_);  // init
 
@@ -3399,7 +3407,16 @@ write_export_section(Module& m)
 }
 
 #ifdef V8_FORMAT
-void write_module_header(Module& m) {
+void
+write_memory_declaration(Module& m) {
+  m.write().fixed_width<uint8_t>(v8::kDeclMemory);
+  m.write().fixed_width<uint8_t>(16);  // min memory size
+  m.write().fixed_width<uint8_t>(16);  // max memory size
+  m.write().fixed_width<uint8_t>(1);  // always export the memory as a named property
+}
+
+void
+write_module_header(Module& m) {
   // TODO: where to get the size of linear memory on the asm.js
   m.write().fixed_width<uint8_t>(20); // 1mb linear memory size
   m.write().fixed_width<uint8_t>(1);  // always export the memory as a named property
@@ -3408,11 +3425,13 @@ void write_module_header(Module& m) {
   m.write().fixed_width<uint16_t>(m.num_data_segments());  // number of data in the data segments
 }
 
-void write_global_variable_section(Module& m) {
+void
+write_global_variable_section(Module& m) {
   m.write_global_variable_section();
 }
 
-uint8_t get_v8_type_code(uint8_t t) {
+uint8_t
+get_v8_type_code(uint8_t t) {
   switch(t) {
     case 0:
       return 1;
@@ -3427,63 +3446,18 @@ uint8_t get_v8_type_code(uint8_t t) {
 }
 
 void
-write_function_info_section(Module& m)
+v8_write_signature_section(Module& m)
 {
-  // 1. local funcs
-  for (auto& f : m.funcs()) {
-    m.write().fixed_width<uint8_t>(f.sig().args_size());
-    // m.write().code(f.sig().ret);
-    m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(f.sig().ret)));
-    for (auto& t : f.sig().args) {
-      // m.write().code(t);
-      m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(t)));
-    }
-
-    long pos = m.write().tellp();
-    f.set_patch_position(pos);
-    m.write().fixed_width<uint32_t>(0);  // Name offset
-    m.write().fixed_width<uint32_t>(0);  // Code start offset
-    m.write().fixed_width<uint32_t>(0);  // Code end offset
-    m.write().fixed_width<uint16_t>(f.num_i32_vars());  // local int32 count
-    m.write().fixed_width<uint16_t>(0);  // local int64 count
-    m.write().fixed_width<uint16_t>(f.num_f32_vars());  // local f32 count
-    m.write().fixed_width<uint16_t>(f.num_f64_vars());  // local f32 count
-    m.write().fixed_width<uint8_t>(0);  // exported
-    m.write().fixed_width<uint8_t>(0);  // external
-  }
-
-  // 2. import funcs from ffi
-  for (auto& fi : m.func_imps()) {
-    for (auto& fis : fi.sigs) {
-      const Signature& sig = m.sig(fis.sig_index);
-      m.write().fixed_width<uint8_t>(sig.args_size());
-      // m.write().code(sig.ret);
+  if (m.sigs().size() > 0) {
+    m.write().fixed_width<uint8_t>(v8::kDeclSignatures);
+    m.write().imm_u32(m.sigs().size());
+    for (auto& sig : m.sigs()) {
+      m.write().fixed_width<uint8_t>(sig.args.size());
       m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(sig.ret)));
-      for (auto& t : sig.args) {
-        // m.write().code(t);
+      for (auto t : sig.args)
         m.write().fixed_width<uint8_t>(get_v8_type_code(static_cast<uint8_t>(t)));
-      }
-
-      long pos = m.write().tellp();
-      fis.patch_pos_ = pos;
-      m.write().fixed_width<uint32_t>(0);  // Name offset
-      m.write().fixed_width<uint32_t>(0);  // Code start offset
-      m.write().fixed_width<uint32_t>(0);  // Code end offset
-      m.write().fixed_width<uint16_t>(0);  // local int32 count
-      m.write().fixed_width<uint16_t>(0);  // local int64 count
-      m.write().fixed_width<uint16_t>(0);  // local f32 count
-      m.write().fixed_width<uint16_t>(0);  // local f32 count
-      m.write().fixed_width<uint8_t>(0);  // exported
-      m.write().fixed_width<uint8_t>(1);  // external
     }
   }
-
-  // 3. import funcs from stdlib
-}
-
-void
-write_data_seg_info_section(Module& m) {
-  m.write_data_seg_info_section();
 }
 
 void
@@ -3495,12 +3469,55 @@ write_function_body(Module& m, Function& f, const AstNode* stmts) {
 }
 
 void
-write_function_body_section(Module& m) {
-  for (auto& f : m.funcs()) {
-    f.set_code_start(m.write().tellp());
-    write_function_body(m, f, f.body());
-    f.set_code_end(m.write().tellp());
+write_function_section(Module& m)
+{
+  if (m.num_funcs() > 0) {
+    m.write().fixed_width<uint8_t>(v8::kDeclFunctions);
+    m.write().imm_u32(m.num_funcs());
+    for (auto& f : m.funcs()) {
+      uint8_t decl_bit = (f.is_exported() ? v8::kDeclFunctionName | v8::kDeclFunctionExport : 0) |
+                         (f.num_vars() ? v8::kDeclFunctionLocals : 0);
+      m.write().fixed_width<uint8_t>(decl_bit);
+      m.write().fixed_width<uint16_t>(f.sig_index());
+      long pos = m.write().tellp();
+      f.set_patch_position(pos);
+      if (decl_bit & v8::kDeclFunctionName) {
+        m.write().fixed_width<uint32_t>(0);  // Name offset to be patched
+      }
+
+      if (f.num_vars()) {
+        m.write().fixed_width<uint16_t>(f.num_i32_vars());  // local int32 count
+        m.write().fixed_width<uint16_t>(0);  // local int64 count
+        m.write().fixed_width<uint16_t>(f.num_f32_vars());  // local f32 count
+        m.write().fixed_width<uint16_t>(f.num_f64_vars());  // local f32 count
+      }
+
+      m.write().fixed_width<uint16_t>(0);  // body size to be patched
+      f.set_code_start(m.write().tellp());
+      write_function_body(m, f, f.body());
+      f.set_code_end(m.write().tellp());
+    }
+
+    for (auto& fi : m.func_imps()) {
+      for (auto& fis : fi.sigs) {
+        m.write().fixed_width<uint8_t>(v8::kDeclFunctionName | v8::kDeclFunctionImport);
+        m.write().fixed_width<uint16_t>(fis.sig_index);
+        long pos = m.write().tellp();
+        fis.patch_pos_ = pos;
+        m.write().fixed_width<uint32_t>(0);  // Name offset to be patched
+      }
+    }
   }
+}
+
+void
+write_data_seg_info_section(Module& m) {
+  m.write_data_seg_info_section();
+}
+
+void
+write_function_table(Module& m) {
+  // TODO(weiliang): support Function Table
 }
 
 void
@@ -3514,19 +3531,17 @@ void patch_offsets(Module& m) {
     // name if exported
     assert(f.patch_position() > 0);
     m.write().seekp(f.patch_position());
+    uint32_t offset = 0;
     if (f.is_exported()) {
       StringSegment* ss = f.string_seg();
       assert(ss != NULL && ss->get_src_offset() > 0);
       m.write().fixed_width<uint32_t>(ss->get_src_offset());
-    } else {
-      m.write().fixed_width<uint32_t>(0);
+      offset += 4;
     }
-    // code start and end offset
-    m.write().fixed_width<uint32_t>(f.code_start());
-    m.write().fixed_width<uint32_t>(f.code_end());
-    // exported
-    m.write().seekp(f.patch_position() + 20);
-    m.write().fixed_width<uint8_t>(f.is_exported());
+    // body size
+    offset += f.num_vars() ? 8: 0;
+    m.write().seekp(f.patch_position() + offset);
+    m.write().fixed_width<uint16_t>(f.body_size());
   }
 
   for (auto& fi : m.func_imps()) {
@@ -3551,21 +3566,23 @@ void
 write_module(Module& m)
 {
 #ifdef V8_FORMAT
-  // 1. module header
-  write_module_header(m);
-
-  // 2. global variable section
+  // 1. emit memory declaration
+  write_memory_declaration(m);
+  // 2. emit globals
   write_global_variable_section(m);
-
-  // 3. Function info section
-  write_function_info_section(m);
-  // 4. Data segment info section
+  // 3. emit signatures
+  v8_write_signature_section(m);
+  // 4. emit functions
+  write_function_section(m);
+  // 5. emit data segments
   write_data_seg_info_section(m);
-  // 5. Function Body
-  write_function_body_section(m);
-  // 6. Data Body
+  // 6. emit function table
+  write_function_table(m);
+  // 7. end of declaration
+  m.write().fixed_width<uint8_t>(v8::kDeclEnd);
+  // 8. Data Body
   write_data_body_section(m);
-  // 7. patch all offset info
+  // 9. patch all offset info
   patch_offsets(m);
 #else
   m.write().fixed_width<uint32_t>(MagicNumber);
