@@ -1513,7 +1513,7 @@ public:
 void Module::patch_global_section() {
   long global_offset = globals_patch_offset_;
   for (auto& g : globals_list_) {
-    write().seekp(globals_offset);
+    write().seekp(global_offset);
     assert(g.string_seg->get_src_offset() > 0);
     write().fixed_width<uint32_t>(g.string_seg->get_src_offset());
     global_offset += 6;
