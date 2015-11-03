@@ -1541,6 +1541,7 @@ void Module::write_global_variable_section() {
     for (auto& g : globals_list_) {
       write().fixed_width<uint32_t>(0);  // name offset to be patched later
       write().fixed_width<uint8_t>(get_v8_mem_type_code(static_cast<uint8_t>(g.type)));  // type
+      // MVP does not support exported global varialbes
       write().fixed_width<uint8_t>(0);  // exported
     }
   }
@@ -1796,7 +1797,14 @@ analyze_global_definitions(Module& m, AstNode* stmt)
           case AstNode::Prefix: {
             auto& dot = var->init.as<PrefixNode>().kid.as<DotNode>();
             assert(dot.base.as<NameNode>().str == m.foreign());
+#ifdef V8_FORMAT
+            // v8-native does not support import variables, so zero them
+            // and make them exported, then initalize them by external values
+            // after the wasm module is instantiated.
+            f64_zero.push_back(var->name);
+#else
             f64_import.emplace_back(var->name, dot.name);
+#endif
             break;
           }
           case AstNode::Binary: {
@@ -1805,7 +1813,14 @@ analyze_global_definitions(Module& m, AstNode* stmt)
             assert(binary.rhs.as<IntNode>().u32 == 0);
             auto& dot = binary.lhs.as<DotNode>();
             assert(dot.base.as<NameNode>().str == m.foreign());
+#ifdef V8_FORMAT
+            // v8-native does not support import variables, so zero them
+            // and make them exported, then initalize them by external values
+            // after the wasm module is instantiated.
+            i32_zero.push_back(var->name);
+#else
             i32_import.emplace_back(var->name, dot.name);
+#endif
             break;
           }
           case AstNode::Call: {
@@ -2221,6 +2236,7 @@ analyze_index(Module& m, Function& f, IndexNode& index)
         assert(hv.shift == 0);
     }
 
+#ifndef V8_FORMAT
     if (index.index->is<BinaryNode>()) {
       BinaryNode& binary = index.index->as<BinaryNode>();
       if (binary.op.equals("+")) {
@@ -2233,6 +2249,7 @@ analyze_index(Module& m, Function& f, IndexNode& index)
         }
       }
     }
+#endif
 
     t = analyze_expr(m, f, *index.index);
   }
@@ -3410,8 +3427,8 @@ write_export_section(Module& m)
 void
 write_memory_declaration(Module& m) {
   m.write().fixed_width<uint8_t>(v8::kDeclMemory);
-  m.write().fixed_width<uint8_t>(16);  // min memory size
-  m.write().fixed_width<uint8_t>(16);  // max memory size
+  m.write().fixed_width<uint8_t>(24);  // min memory size
+  m.write().fixed_width<uint8_t>(24);  // max memory size
   m.write().fixed_width<uint8_t>(1);  // always export the memory as a named property
 }
 
@@ -3462,9 +3479,15 @@ v8_write_signature_section(Module& m)
 
 void
 write_function_body(Module& m, Function& f, const AstNode* stmts) {
-
+  uint32_t num_stmts = 0;
   for (const AstNode* n = stmts; n; n = n->next) {
+    num_stmts++;
     write_stmt(m, f, *n);
+  }
+
+  // v8-native does not support empty functions.
+  if (num_stmts == 0) {
+    m.write().code(opcode(Stmt::Ret));
   }
 }
 
