@@ -1,13 +1,11 @@
-#include<iostream>
-#include<cmath>
-#include <chrono>
-#include <ctime>
+#include<stdio.h>
+#include<math.h>
+#include<stdlib.h>
+#include<sys/time.h>
 
-using namespace std;
-
-int main() {
-  chrono::time_point<std::chrono::system_clock> start, end;
-  start = chrono::system_clock::now();
+int main(int argc, char **argv) {
+  struct timeval tv1, tv2;
+  gettimeofday(&tv1, NULL);
   int arg = 220000;
 
   int primes = 0, curri = 2;
@@ -26,10 +24,11 @@ int main() {
   }
 
   int ret = curri - 1;
-  end = chrono::system_clock::now();
-  chrono::duration<double> elapsed_seconds = end-start;
-  cout << "  time: " << elapsed_seconds.count() * 1000 << " ms"  << endl;
-  cout << "  result: " << ret << endl;
+  gettimeofday(&tv2, NULL);
+  printf("ret: %d.\n", ret);
+  printf ("Total time = %f seconds\n",
+      (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+      (double) (tv2.tv_sec - tv1.tv_sec));
   return ret;
 }
 

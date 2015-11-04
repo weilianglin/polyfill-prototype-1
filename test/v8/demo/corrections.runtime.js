@@ -1118,7 +1118,7 @@ var memoryInitializer = null;
 STATIC_BASE = 8;
 STATICTOP = STATIC_BASE + 560;
 __ATINIT__.push();
-var memoryInitializer = "memops.js.mem";
+var memoryInitializer = "corrections.js.mem";
 var tempDoublePtr = Runtime.alignMemory(allocate(12, "i8", ALLOC_STATIC), 8);
 assert(tempDoublePtr % 8 == 0);
 function copyTempFloat(ptr) {
@@ -5917,10 +5917,6 @@ Module.asmGlobalArg = {
  "Float32Array": Float32Array,
  "Float64Array": Float64Array
 };
-function getSTACKTOP() { return STACKTOP; }
-function getSTACK_MAX() { return STACK_MAX; }
-function getTempDoublePtr() { return tempDoublePtr; }
-function getABORT() { return ABORT; }
 Module.asmLibraryArg = {
  "abort": abort,
  "assert": assert,
@@ -5946,10 +5942,6 @@ Module.asmLibraryArg = {
  "_sysconf": _sysconf,
  "___errno_location": ___errno_location,
  "___setErrNo": ___setErrNo,
- "getSTACKTOP":getSTACKTOP,
- "getSTACK_MAX":getSTACK_MAX,
- "getTempDoublePtr":getTempDoublePtr,
- "getABORT":getABORT,
  "STACKTOP": STACKTOP,
  "STACK_MAX": STACK_MAX,
  "tempDoublePtr": tempDoublePtr,

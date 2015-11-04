@@ -1,8 +1,6 @@
-#include<iostream>
-#include <chrono>
-#include <ctime>
-using namespace std;
 
+#include<stdio.h>
+#include<sys/time.h>
 struct vec {
   int x, y, z;
   int r, g, b;
@@ -20,10 +18,11 @@ struct vec {
   }
   int sum() { return x + y + z + r + g + b; }
 };
-int main() {
-  chrono::time_point<std::chrono::system_clock> start, end;
-  start = chrono::system_clock::now();
+int main(int argc, char **argv) {
+  struct timeval tv1, tv2;
+  gettimeofday(&tv1, NULL);
   int arg = 1250;
+
   int total = 0;
   for (int i = 0; i < arg; i++) {
     for (int j = 0; j < 50000; j++) {
@@ -40,9 +39,11 @@ int main() {
       total %= 10240;
     }
   }
-  end = chrono::system_clock::now();
-  chrono::duration<double> elapsed_seconds = end-start;
-  cout << "  time: " << elapsed_seconds.count() * 1000 << " ms"<< endl;
-  cout << "  result: " << total << endl;
-  return total;
+  gettimeofday(&tv2, NULL);
+  printf("sum:%d\n", total);
+  printf ("Total time = %f seconds\n",
+      (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+      (double) (tv2.tv_sec - tv1.tv_sec));
+  return 0;
 }
+

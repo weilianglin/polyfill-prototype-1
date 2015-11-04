@@ -11,28 +11,31 @@ function run() {
   echo "====== $case ======"
   if [ -e "${case}.cpp" ]; then
     echo "  === c++ ==="
-    g++ -std=c++11 -O2 -o ${case} ${case}.cpp
+    g++ -O2 -o ${case} ${case}.cpp
     ./${case}
   fi
 
   if [ -e "${case}.js" ]; then
     echo "  === asm.js ==="
+    cp ${case}.runtime.js emscripten-runtime.js
     cp ${case}.js demo.js
-    $d8 test-asm.js
+    $d8 run-asm.js
   fi
 
   if [ -e "${case}.wasm" ]; then
     echo "  === wasm ==="
+    cp ${case}.runtime.js emscripten-runtime.js
     $packer ${case}.js ${case}.wasm
     cp ${case}.wasm demo.wasm
-    $d8 test-wasm.js
+    $d8 run-wasm.js
   fi
   echo
 }
 
 cases="primes
 copy
-corrections"
+corrections
+memops"
 
 for case in $cases
 do

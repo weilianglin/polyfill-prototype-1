@@ -1,6 +1,12 @@
 // 1. runtime and libc support
 load("emscripten-runtime.js");
 
+// some helper functions for imported variables
+Module.asmLibraryArg.getSTACKTOP = function getSTACKTOP() { return STACKTOP; };
+Module.asmLibraryArg.getSTACK_MAX = function getSTACK_MAX() { return STACK_MAX; }
+Module.asmLibraryArg.getTempDoublePtr = function getTempDoublePtr() { return tempDoublePtr; }
+Module.asmLibraryArg.getABORT = function getABORT() { return ABORT; }
+
 // 2. load asm.js or wasm module
 load("load_asmModule.js");
 

@@ -1,3 +1,4 @@
+// EMSCRIPTEN_START_ASM
 function asmModule(global,env,buffer) {
 
   'use asm';
@@ -64,6 +65,7 @@ function asmModule(global,env,buffer) {
   var _sbrk=env._sbrk;
   var _mkport=env._mkport;
   var _fprintf=env._fprintf;
+  var _gettimeofday=env._gettimeofday;
   var __reallyNegative=env.__reallyNegative;
   var _emscripten_memcpy_big=env._emscripten_memcpy_big;
   var _fileno=env._fileno;
@@ -74,7 +76,18 @@ function asmModule(global,env,buffer) {
   var ___setErrNo=env.___setErrNo;
   var tempFloat = 0.0;
 
+  var getSTACKTOP = env.getSTACKTOP;
+  var getSTACK_MAX = env.getSTACK_MAX;
+  var getTempDoublePtr = env.getTempDoublePtr;
+  var getABORT = env.getABORT;
+
 // EMSCRIPTEN_START_FUNCS
+function _env_init() {
+  STACKTOP = getSTACKTOP()|0;
+  STACK_MAX=getSTACK_MAX()|0;
+  tempDoublePtr=getTempDoublePtr()|0;
+  ABORT=getABORT()|0;
+}
 function _malloc(i1) {
  i1 = i1 | 0;
  var i2 = 0, i3 = 0, i4 = 0, i5 = 0, i6 = 0, i7 = 0, i8 = 0, i9 = 0, i10 = 0, i11 = 0, i12 = 0, i13 = 0, i14 = 0, i15 = 0, i16 = 0, i17 = 0, i18 = 0, i19 = 0, i20 = 0, i21 = 0, i22 = 0, i23 = 0, i24 = 0, i25 = 0, i26 = 0, i27 = 0, i28 = 0, i29 = 0, i30 = 0, i31 = 0, i32 = 0, i33 = 0, i34 = 0, i35 = 0, i36 = 0, i37 = 0, i38 = 0, i39 = 0, i40 = 0, i41 = 0, i42 = 0, i43 = 0, i44 = 0, i45 = 0, i46 = 0, i47 = 0, i48 = 0, i49 = 0, i50 = 0, i51 = 0, i52 = 0, i53 = 0, i54 = 0, i55 = 0, i56 = 0, i57 = 0, i58 = 0, i59 = 0, i60 = 0, i61 = 0, i62 = 0, i63 = 0, i64 = 0, i65 = 0, i66 = 0, i67 = 0, i68 = 0, i69 = 0, i70 = 0, i71 = 0, i72 = 0, i73 = 0, i74 = 0, i75 = 0, i76 = 0, i77 = 0, i78 = 0, i79 = 0, i80 = 0, i81 = 0, i82 = 0, i83 = 0, i84 = 0, i85 = 0, i86 = 0, i87 = 0, i88 = 0, i89 = 0, i90 = 0;
@@ -82,25 +95,25 @@ function _malloc(i1) {
  do if (i1 >>> 0 < 245) {
   if (i1 >>> 0 < 11) i3 = 16; else i3 = i1 + 11 & -8;
   i4 = i3 >>> 3;
-  i5 = HEAP32[6] | 0;
+  i5 = HEAP32[14] | 0;
   i6 = i5 >>> i4;
   if (i6 & 3) {
    i7 = (i6 & 1 ^ 1) + i4 | 0;
    i8 = i7 << 1;
-   i9 = 64 + (i8 << 2) | 0;
-   i10 = 64 + (i8 + 2 << 2) | 0;
+   i9 = 96 + (i8 << 2) | 0;
+   i10 = 96 + (i8 + 2 << 2) | 0;
    i8 = HEAP32[i10 >> 2] | 0;
    i11 = i8 + 8 | 0;
    i12 = HEAP32[i11 >> 2] | 0;
    do if ((i9 | 0) != (i12 | 0)) {
-    if (i12 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+    if (i12 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
     i13 = i12 + 12 | 0;
     if ((HEAP32[i13 >> 2] | 0) == (i8 | 0)) {
      HEAP32[i13 >> 2] = i9;
      HEAP32[i10 >> 2] = i12;
      break;
     } else _abort();
-   } else HEAP32[6] = i5 & ~(1 << i7); while (0);
+   } else HEAP32[14] = i5 & ~(1 << i7); while (0);
    i12 = i7 << 3;
    HEAP32[i8 + 4 >> 2] = i12 | 3;
    i10 = i8 + (i12 | 4) | 0;
@@ -109,7 +122,7 @@ function _malloc(i1) {
    STACKTOP = i2;
    return i14 | 0;
   }
-  i10 = HEAP32[8] | 0;
+  i10 = HEAP32[16] | 0;
   if (i3 >>> 0 > i10 >>> 0) {
    if (i6) {
     i12 = 2 << i4;
@@ -126,22 +139,22 @@ function _malloc(i1) {
     i16 = i17 >>> 1 & 1;
     i18 = (i12 | i9 | i13 | i15 | i16) + (i17 >>> i16) | 0;
     i16 = i18 << 1;
-    i17 = 64 + (i16 << 2) | 0;
-    i15 = 64 + (i16 + 2 << 2) | 0;
+    i17 = 96 + (i16 << 2) | 0;
+    i15 = 96 + (i16 + 2 << 2) | 0;
     i16 = HEAP32[i15 >> 2] | 0;
     i13 = i16 + 8 | 0;
     i9 = HEAP32[i13 >> 2] | 0;
     do if ((i17 | 0) != (i9 | 0)) {
-     if (i9 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+     if (i9 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
      i12 = i9 + 12 | 0;
      if ((HEAP32[i12 >> 2] | 0) == (i16 | 0)) {
       HEAP32[i12 >> 2] = i17;
       HEAP32[i15 >> 2] = i9;
-      i19 = HEAP32[8] | 0;
+      i19 = HEAP32[16] | 0;
       break;
      } else _abort();
     } else {
-     HEAP32[6] = i5 & ~(1 << i18);
+     HEAP32[14] = i5 & ~(1 << i18);
      i19 = i10;
     } while (0);
     i10 = i18 << 3;
@@ -151,22 +164,22 @@ function _malloc(i1) {
     HEAP32[i16 + (i3 | 4) >> 2] = i5 | 1;
     HEAP32[i16 + i10 >> 2] = i5;
     if (i19) {
-     i10 = HEAP32[11] | 0;
+     i10 = HEAP32[19] | 0;
      i15 = i19 >>> 3;
      i17 = i15 << 1;
-     i4 = 64 + (i17 << 2) | 0;
-     i6 = HEAP32[6] | 0;
+     i4 = 96 + (i17 << 2) | 0;
+     i6 = HEAP32[14] | 0;
      i11 = 1 << i15;
      if (i6 & i11) {
-      i15 = 64 + (i17 + 2 << 2) | 0;
+      i15 = 96 + (i17 + 2 << 2) | 0;
       i8 = HEAP32[i15 >> 2] | 0;
-      if (i8 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+      if (i8 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
        i20 = i15;
        i21 = i8;
       }
      } else {
-      HEAP32[6] = i6 | i11;
-      i20 = 64 + (i17 + 2 << 2) | 0;
+      HEAP32[14] = i6 | i11;
+      i20 = 96 + (i17 + 2 << 2) | 0;
       i21 = i4;
      }
      HEAP32[i20 >> 2] = i10;
@@ -174,13 +187,13 @@ function _malloc(i1) {
      HEAP32[i10 + 8 >> 2] = i21;
      HEAP32[i10 + 12 >> 2] = i4;
     }
-    HEAP32[8] = i5;
-    HEAP32[11] = i9;
+    HEAP32[16] = i5;
+    HEAP32[19] = i9;
     i14 = i13;
     STACKTOP = i2;
     return i14 | 0;
    }
-   i9 = HEAP32[7] | 0;
+   i9 = HEAP32[15] | 0;
    if (i9) {
     i5 = (i9 & 0 - i9) + -1 | 0;
     i9 = i5 >>> 12 & 16;
@@ -192,7 +205,7 @@ function _malloc(i1) {
     i10 = i17 >>> 1 & 2;
     i11 = i17 >>> i10;
     i17 = i11 >>> 1 & 1;
-    i6 = HEAP32[328 + ((i5 | i9 | i4 | i10 | i17) + (i11 >>> i17) << 2) >> 2] | 0;
+    i6 = HEAP32[360 + ((i5 | i9 | i4 | i10 | i17) + (i11 >>> i17) << 2) >> 2] | 0;
     i17 = (HEAP32[i6 + 4 >> 2] & -8) - i3 | 0;
     i11 = i6;
     i10 = i6;
@@ -208,7 +221,7 @@ function _malloc(i1) {
      i11 = i22;
      i10 = i4 ? i22 : i10;
     }
-    i11 = HEAP32[10] | 0;
+    i11 = HEAP32[18] | 0;
     if (i10 >>> 0 < i11 >>> 0) _abort();
     i13 = i10 + i3 | 0;
     if (i10 >>> 0 >= i13 >>> 0) _abort();
@@ -266,20 +279,20 @@ function _malloc(i1) {
     } while (0);
     do if (i16) {
      i18 = HEAP32[i10 + 28 >> 2] | 0;
-     i11 = 328 + (i18 << 2) | 0;
+     i11 = 360 + (i18 << 2) | 0;
      if ((i10 | 0) == (HEAP32[i11 >> 2] | 0)) {
       HEAP32[i11 >> 2] = i23;
       if (!i23) {
-       HEAP32[7] = HEAP32[7] & ~(1 << i18);
+       HEAP32[15] = HEAP32[15] & ~(1 << i18);
        break;
       }
      } else {
-      if (i16 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+      if (i16 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
       i18 = i16 + 16 | 0;
       if ((HEAP32[i18 >> 2] | 0) == (i10 | 0)) HEAP32[i18 >> 2] = i23; else HEAP32[i16 + 20 >> 2] = i23;
       if (!i23) break;
      }
-     i18 = HEAP32[10] | 0;
+     i18 = HEAP32[18] | 0;
      if (i23 >>> 0 < i18 >>> 0) _abort();
      HEAP32[i23 + 24 >> 2] = i16;
      i11 = HEAP32[i10 + 16 >> 2] | 0;
@@ -289,7 +302,7 @@ function _malloc(i1) {
       break;
      } while (0);
      i11 = HEAP32[i10 + 20 >> 2] | 0;
-     if (i11) if (i11 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+     if (i11) if (i11 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
       HEAP32[i23 + 20 >> 2] = i11;
       HEAP32[i11 + 24 >> 2] = i23;
       break;
@@ -304,24 +317,24 @@ function _malloc(i1) {
      HEAP32[i10 + 4 >> 2] = i3 | 3;
      HEAP32[i10 + (i3 | 4) >> 2] = i17 | 1;
      HEAP32[i10 + (i17 + i3) >> 2] = i17;
-     i11 = HEAP32[8] | 0;
+     i11 = HEAP32[16] | 0;
      if (i11) {
-      i16 = HEAP32[11] | 0;
+      i16 = HEAP32[19] | 0;
       i18 = i11 >>> 3;
       i11 = i18 << 1;
-      i4 = 64 + (i11 << 2) | 0;
-      i9 = HEAP32[6] | 0;
+      i4 = 96 + (i11 << 2) | 0;
+      i9 = HEAP32[14] | 0;
       i6 = 1 << i18;
       if (i9 & i6) {
-       i18 = 64 + (i11 + 2 << 2) | 0;
+       i18 = 96 + (i11 + 2 << 2) | 0;
        i5 = HEAP32[i18 >> 2] | 0;
-       if (i5 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+       if (i5 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
         i26 = i18;
         i27 = i5;
        }
       } else {
-       HEAP32[6] = i9 | i6;
-       i26 = 64 + (i11 + 2 << 2) | 0;
+       HEAP32[14] = i9 | i6;
+       i26 = 96 + (i11 + 2 << 2) | 0;
        i27 = i4;
       }
       HEAP32[i26 >> 2] = i16;
@@ -329,8 +342,8 @@ function _malloc(i1) {
       HEAP32[i16 + 8 >> 2] = i27;
       HEAP32[i16 + 12 >> 2] = i4;
      }
-     HEAP32[8] = i17;
-     HEAP32[11] = i13;
+     HEAP32[16] = i17;
+     HEAP32[19] = i13;
     }
     i14 = i10 + 8 | 0;
     STACKTOP = i2;
@@ -340,7 +353,7 @@ function _malloc(i1) {
  } else if (i1 >>> 0 <= 4294967231) {
   i4 = i1 + 11 | 0;
   i16 = i4 & -8;
-  i11 = HEAP32[7] | 0;
+  i11 = HEAP32[15] | 0;
   if (i11) {
    i6 = 0 - i16 | 0;
    i9 = i4 >>> 8;
@@ -353,7 +366,7 @@ function _malloc(i1) {
     i8 = 14 - (i9 | i4 | i5) + (i18 << i5 >>> 15) | 0;
     i29 = i16 >>> (i8 + 7 | 0) & 1 | i8 << 1;
    } else i29 = 0;
-   i8 = HEAP32[328 + (i29 << 2) >> 2] | 0;
+   i8 = HEAP32[360 + (i29 << 2) >> 2] | 0;
    L126 : do if (!i8) {
     i30 = i6;
     i31 = 0;
@@ -413,7 +426,7 @@ function _malloc(i1) {
     i13 = i17 >>> 1 & 2;
     i15 = i17 >>> i13;
     i17 = i15 >>> 1 & 1;
-    i36 = HEAP32[328 + ((i8 | i6 | i10 | i13 | i17) + (i15 >>> i17) << 2) >> 2] | 0;
+    i36 = HEAP32[360 + ((i8 | i6 | i10 | i13 | i17) + (i15 >>> i17) << 2) >> 2] | 0;
    } else i36 = i31;
    if (!i36) {
     i37 = i30;
@@ -445,8 +458,8 @@ function _malloc(i1) {
      }
     }
    }
-   if ((i38 | 0) != 0 ? i37 >>> 0 < ((HEAP32[8] | 0) - i16 | 0) >>> 0 : 0) {
-    i13 = HEAP32[10] | 0;
+   if ((i38 | 0) != 0 ? i37 >>> 0 < ((HEAP32[16] | 0) - i16 | 0) >>> 0 : 0) {
+    i13 = HEAP32[18] | 0;
     if (i38 >>> 0 < i13 >>> 0) _abort();
     i17 = i38 + i16 | 0;
     if (i38 >>> 0 >= i17 >>> 0) _abort();
@@ -504,20 +517,20 @@ function _malloc(i1) {
     } while (0);
     do if (i15) {
      i11 = HEAP32[i38 + 28 >> 2] | 0;
-     i13 = 328 + (i11 << 2) | 0;
+     i13 = 360 + (i11 << 2) | 0;
      if ((i38 | 0) == (HEAP32[i13 >> 2] | 0)) {
       HEAP32[i13 >> 2] = i39;
       if (!i39) {
-       HEAP32[7] = HEAP32[7] & ~(1 << i11);
+       HEAP32[15] = HEAP32[15] & ~(1 << i11);
        break;
       }
      } else {
-      if (i15 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+      if (i15 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
       i11 = i15 + 16 | 0;
       if ((HEAP32[i11 >> 2] | 0) == (i38 | 0)) HEAP32[i11 >> 2] = i39; else HEAP32[i15 + 20 >> 2] = i39;
       if (!i39) break;
      }
-     i11 = HEAP32[10] | 0;
+     i11 = HEAP32[18] | 0;
      if (i39 >>> 0 < i11 >>> 0) _abort();
      HEAP32[i39 + 24 >> 2] = i15;
      i13 = HEAP32[i38 + 16 >> 2] | 0;
@@ -527,7 +540,7 @@ function _malloc(i1) {
       break;
      } while (0);
      i13 = HEAP32[i38 + 20 >> 2] | 0;
-     if (i13) if (i13 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+     if (i13) if (i13 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
       HEAP32[i39 + 20 >> 2] = i13;
       HEAP32[i13 + 24 >> 2] = i39;
       break;
@@ -540,17 +553,17 @@ function _malloc(i1) {
      i15 = i37 >>> 3;
      if (i37 >>> 0 < 256) {
       i13 = i15 << 1;
-      i11 = 64 + (i13 << 2) | 0;
-      i10 = HEAP32[6] | 0;
+      i11 = 96 + (i13 << 2) | 0;
+      i10 = HEAP32[14] | 0;
       i6 = 1 << i15;
       do if (!(i10 & i6)) {
-       HEAP32[6] = i10 | i6;
-       i42 = 64 + (i13 + 2 << 2) | 0;
+       HEAP32[14] = i10 | i6;
+       i42 = 96 + (i13 + 2 << 2) | 0;
        i43 = i11;
       } else {
-       i15 = 64 + (i13 + 2 << 2) | 0;
+       i15 = 96 + (i13 + 2 << 2) | 0;
        i8 = HEAP32[i15 >> 2] | 0;
-       if (i8 >>> 0 >= (HEAP32[10] | 0) >>> 0) {
+       if (i8 >>> 0 >= (HEAP32[18] | 0) >>> 0) {
         i42 = i15;
         i43 = i8;
         break;
@@ -573,14 +586,14 @@ function _malloc(i1) {
       i15 = 14 - (i13 | i6 | i10) + (i8 << i10 >>> 15) | 0;
       i44 = i37 >>> (i15 + 7 | 0) & 1 | i15 << 1;
      } else i44 = 0;
-     i15 = 328 + (i44 << 2) | 0;
+     i15 = 360 + (i44 << 2) | 0;
      HEAP32[i38 + (i16 + 28) >> 2] = i44;
      HEAP32[i38 + (i16 + 20) >> 2] = 0;
      HEAP32[i38 + (i16 + 16) >> 2] = 0;
-     i10 = HEAP32[7] | 0;
+     i10 = HEAP32[15] | 0;
      i8 = 1 << i44;
      if (!(i10 & i8)) {
-      HEAP32[7] = i10 | i8;
+      HEAP32[15] = i10 | i8;
       HEAP32[i15 >> 2] = i17;
       HEAP32[i38 + (i16 + 24) >> 2] = i15;
       HEAP32[i38 + (i16 + 12) >> 2] = i17;
@@ -604,7 +617,7 @@ function _malloc(i1) {
         i10 = i6;
        }
       }
-      if (i46 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+      if (i46 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
        HEAP32[i46 >> 2] = i17;
        HEAP32[i38 + (i16 + 24) >> 2] = i10;
        HEAP32[i38 + (i16 + 12) >> 2] = i17;
@@ -614,7 +627,7 @@ function _malloc(i1) {
      } else i47 = i8; while (0);
      i8 = i47 + 8 | 0;
      i11 = HEAP32[i8 >> 2] | 0;
-     i15 = HEAP32[10] | 0;
+     i15 = HEAP32[18] | 0;
      if (i47 >>> 0 >= i15 >>> 0 & i11 >>> 0 >= i15 >>> 0) {
       HEAP32[i11 + 12 >> 2] = i17;
       HEAP32[i8 >> 2] = i17;
@@ -635,19 +648,19 @@ function _malloc(i1) {
    } else i28 = i16;
   } else i28 = i16;
  } else i28 = -1; while (0);
- i38 = HEAP32[8] | 0;
+ i38 = HEAP32[16] | 0;
  if (i38 >>> 0 >= i28 >>> 0) {
   i37 = i38 - i28 | 0;
-  i47 = HEAP32[11] | 0;
+  i47 = HEAP32[19] | 0;
   if (i37 >>> 0 > 15) {
-   HEAP32[11] = i47 + i28;
-   HEAP32[8] = i37;
+   HEAP32[19] = i47 + i28;
+   HEAP32[16] = i37;
    HEAP32[i47 + (i28 + 4) >> 2] = i37 | 1;
    HEAP32[i47 + i38 >> 2] = i37;
    HEAP32[i47 + 4 >> 2] = i28 | 3;
   } else {
-   HEAP32[8] = 0;
-   HEAP32[11] = 0;
+   HEAP32[16] = 0;
+   HEAP32[19] = 0;
    HEAP32[i47 + 4 >> 2] = i38 | 3;
    i37 = i47 + (i38 + 4) | 0;
    HEAP32[i37 >> 2] = HEAP32[i37 >> 2] | 1;
@@ -656,33 +669,33 @@ function _malloc(i1) {
   STACKTOP = i2;
   return i14 | 0;
  }
- i47 = HEAP32[9] | 0;
+ i47 = HEAP32[17] | 0;
  if (i47 >>> 0 > i28 >>> 0) {
   i37 = i47 - i28 | 0;
-  HEAP32[9] = i37;
-  i47 = HEAP32[12] | 0;
-  HEAP32[12] = i47 + i28;
+  HEAP32[17] = i37;
+  i47 = HEAP32[20] | 0;
+  HEAP32[20] = i47 + i28;
   HEAP32[i47 + (i28 + 4) >> 2] = i37 | 1;
   HEAP32[i47 + 4 >> 2] = i28 | 3;
   i14 = i47 + 8 | 0;
   STACKTOP = i2;
   return i14 | 0;
  }
- do if (!(HEAP32[124] | 0)) {
+ do if (!(HEAP32[132] | 0)) {
   i47 = _sysconf(30) | 0;
   if (!(i47 + -1 & i47)) {
-   HEAP32[126] = i47;
-   HEAP32[125] = i47;
-   HEAP32[127] = -1;
-   HEAP32[128] = -1;
-   HEAP32[129] = 0;
-   HEAP32[117] = 0;
-   HEAP32[124] = (_time(0) | 0) & -16 ^ 1431655768;
+   HEAP32[134] = i47;
+   HEAP32[133] = i47;
+   HEAP32[135] = -1;
+   HEAP32[136] = -1;
+   HEAP32[137] = 0;
+   HEAP32[125] = 0;
+   HEAP32[132] = (_time(0) | 0) & -16 ^ 1431655768;
    break;
   } else _abort();
  } while (0);
  i47 = i28 + 48 | 0;
- i37 = HEAP32[126] | 0;
+ i37 = HEAP32[134] | 0;
  i38 = i28 + 47 | 0;
  i46 = i37 + i38 | 0;
  i45 = 0 - i37 | 0;
@@ -692,16 +705,16 @@ function _malloc(i1) {
   STACKTOP = i2;
   return i14 | 0;
  }
- i44 = HEAP32[116] | 0;
- if ((i44 | 0) != 0 ? (i43 = HEAP32[114] | 0, i42 = i43 + i37 | 0, i42 >>> 0 <= i43 >>> 0 | i42 >>> 0 > i44 >>> 0) : 0) {
+ i44 = HEAP32[124] | 0;
+ if ((i44 | 0) != 0 ? (i43 = HEAP32[122] | 0, i42 = i43 + i37 | 0, i42 >>> 0 <= i43 >>> 0 | i42 >>> 0 > i44 >>> 0) : 0) {
   i14 = 0;
   STACKTOP = i2;
   return i14 | 0;
  }
- L266 : do if (!(HEAP32[117] & 4)) {
-  i44 = HEAP32[12] | 0;
+ L266 : do if (!(HEAP32[125] & 4)) {
+  i44 = HEAP32[20] | 0;
   L268 : do if (i44) {
-   i42 = 472 | 0;
+   i42 = 504 | 0;
    while (1) {
     i43 = HEAP32[i42 >> 2] | 0;
     if (i43 >>> 0 <= i44 >>> 0 ? (i48 = i42 + 4 | 0, (i43 + (HEAP32[i48 >> 2] | 0) | 0) >>> 0 > i44 >>> 0) : 0) break;
@@ -712,7 +725,7 @@ function _malloc(i1) {
     } else i42 = i43;
    }
    if (i42) {
-    i43 = i46 - (HEAP32[9] | 0) & i45;
+    i43 = i46 - (HEAP32[17] | 0) & i45;
     if (i43 >>> 0 < 2147483647) {
      i39 = _sbrk(i43 | 0) | 0;
      if ((i39 | 0) == ((HEAP32[i42 >> 2] | 0) + (HEAP32[i48 >> 2] | 0) | 0)) {
@@ -731,13 +744,13 @@ function _malloc(i1) {
    i44 = _sbrk(0) | 0;
    if ((i44 | 0) != (-1 | 0)) {
     i16 = i44;
-    i43 = HEAP32[125] | 0;
+    i43 = HEAP32[133] | 0;
     i39 = i43 + -1 | 0;
     if (!(i39 & i16)) i55 = i37; else i55 = i37 - i16 + (i39 + i16 & 0 - i43) | 0;
-    i43 = HEAP32[114] | 0;
+    i43 = HEAP32[122] | 0;
     i16 = i43 + i55 | 0;
     if (i55 >>> 0 > i28 >>> 0 & i55 >>> 0 < 2147483647) {
-     i39 = HEAP32[116] | 0;
+     i39 = HEAP32[124] | 0;
      if ((i39 | 0) != 0 ? i16 >>> 0 <= i43 >>> 0 | i16 >>> 0 > i39 >>> 0 : 0) {
       i54 = 0;
       break;
@@ -762,7 +775,7 @@ function _malloc(i1) {
    break L266;
   } else if ((i49 | 0) == 191) {
    i39 = 0 - i53 | 0;
-   do if ((i52 | 0) != (-1 | 0) & i53 >>> 0 < 2147483647 & i47 >>> 0 > i53 >>> 0 ? (i44 = HEAP32[126] | 0, i16 = i38 - i53 + i44 & 0 - i44, i16 >>> 0 < 2147483647) : 0) if ((_sbrk(i16 | 0) | 0) == (-1 | 0)) {
+   do if ((i52 | 0) != (-1 | 0) & i53 >>> 0 < 2147483647 & i47 >>> 0 > i53 >>> 0 ? (i44 = HEAP32[134] | 0, i16 = i38 - i53 + i44 & 0 - i44, i16 >>> 0 < 2147483647) : 0) if ((_sbrk(i16 | 0) | 0) == (-1 | 0)) {
     _sbrk(i39 | 0) | 0;
     i54 = 0;
     break L288;
@@ -777,7 +790,7 @@ function _malloc(i1) {
     break L266;
    }
   } while (0);
-  HEAP32[117] = HEAP32[117] | 4;
+  HEAP32[125] = HEAP32[125] | 4;
   i59 = i54;
   i49 = 198;
  } else {
@@ -790,12 +803,12 @@ function _malloc(i1) {
   i49 = 201;
  }
  if ((i49 | 0) == 201) {
-  i59 = (HEAP32[114] | 0) + i57 | 0;
-  HEAP32[114] = i59;
-  if (i59 >>> 0 > (HEAP32[115] | 0) >>> 0) HEAP32[115] = i59;
-  i59 = HEAP32[12] | 0;
+  i59 = (HEAP32[122] | 0) + i57 | 0;
+  HEAP32[122] = i59;
+  if (i59 >>> 0 > (HEAP32[123] | 0) >>> 0) HEAP32[123] = i59;
+  i59 = HEAP32[20] | 0;
   L308 : do if (i59) {
-   i58 = 472 | 0;
+   i58 = 504 | 0;
    while (1) {
     i60 = HEAP32[i58 >> 2] | 0;
     i61 = i58 + 4 | 0;
@@ -809,24 +822,24 @@ function _malloc(i1) {
    }
    if (((i49 | 0) == 213 ? (HEAP32[i58 + 12 >> 2] & 8 | 0) == 0 : 0) ? i59 >>> 0 >= i60 >>> 0 & i59 >>> 0 < i56 >>> 0 : 0) {
     HEAP32[i61 >> 2] = i62 + i57;
-    i37 = (HEAP32[9] | 0) + i57 | 0;
+    i37 = (HEAP32[17] | 0) + i57 | 0;
     i54 = i59 + 8 | 0;
     if (!(i54 & 7)) i63 = 0; else i63 = 0 - i54 & 7;
     i54 = i37 - i63 | 0;
-    HEAP32[12] = i59 + i63;
-    HEAP32[9] = i54;
+    HEAP32[20] = i59 + i63;
+    HEAP32[17] = i54;
     HEAP32[i59 + (i63 + 4) >> 2] = i54 | 1;
     HEAP32[i59 + (i37 + 4) >> 2] = 40;
-    HEAP32[13] = HEAP32[128];
+    HEAP32[21] = HEAP32[136];
     break;
    }
-   i37 = HEAP32[10] | 0;
+   i37 = HEAP32[18] | 0;
    if (i56 >>> 0 < i37 >>> 0) {
-    HEAP32[10] = i56;
+    HEAP32[18] = i56;
     i64 = i56;
    } else i64 = i37;
    i37 = i56 + i57 | 0;
-   i54 = 472 | 0;
+   i54 = 504 | 0;
    while (1) {
     if ((HEAP32[i54 >> 2] | 0) == (i37 | 0)) {
      i49 = 223;
@@ -849,10 +862,10 @@ function _malloc(i1) {
     i53 = i37 - (i56 + i65) - i28 | 0;
     HEAP32[i56 + (i65 + 4) >> 2] = i28 | 3;
     L345 : do if ((i37 | 0) != (i59 | 0)) {
-     if ((i37 | 0) == (HEAP32[11] | 0)) {
-      i38 = (HEAP32[8] | 0) + i53 | 0;
-      HEAP32[8] = i38;
-      HEAP32[11] = i52;
+     if ((i37 | 0) == (HEAP32[19] | 0)) {
+      i38 = (HEAP32[16] | 0) + i53 | 0;
+      HEAP32[16] = i38;
+      HEAP32[19] = i52;
       HEAP32[i56 + (i58 + 4) >> 2] = i38 | 1;
       HEAP32[i56 + (i38 + i58) >> 2] = i38;
       break;
@@ -918,19 +931,19 @@ function _malloc(i1) {
        } while (0);
        if (!i55) break;
        i48 = HEAP32[i56 + (i57 + 28 + i66) >> 2] | 0;
-       i10 = 328 + (i48 << 2) | 0;
+       i10 = 360 + (i48 << 2) | 0;
        do if ((i37 | 0) != (HEAP32[i10 >> 2] | 0)) {
-        if (i55 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+        if (i55 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
         i46 = i55 + 16 | 0;
         if ((HEAP32[i46 >> 2] | 0) == (i37 | 0)) HEAP32[i46 >> 2] = i67; else HEAP32[i55 + 20 >> 2] = i67;
         if (!i67) break L353;
        } else {
         HEAP32[i10 >> 2] = i67;
         if (i67) break;
-        HEAP32[7] = HEAP32[7] & ~(1 << i48);
+        HEAP32[15] = HEAP32[15] & ~(1 << i48);
         break L353;
        } while (0);
-       i48 = HEAP32[10] | 0;
+       i48 = HEAP32[18] | 0;
        if (i67 >>> 0 < i48 >>> 0) _abort();
        HEAP32[i67 + 24 >> 2] = i55;
        i10 = i66 | 16;
@@ -942,7 +955,7 @@ function _malloc(i1) {
        } while (0);
        i46 = HEAP32[i56 + (i38 + i10) >> 2] | 0;
        if (!i46) break;
-       if (i46 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+       if (i46 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
         HEAP32[i67 + 20 >> 2] = i46;
         HEAP32[i46 + 24 >> 2] = i67;
         break;
@@ -950,14 +963,14 @@ function _malloc(i1) {
       } else {
        i46 = HEAP32[i56 + ((i66 | 8) + i57) >> 2] | 0;
        i48 = HEAP32[i56 + (i57 + 12 + i66) >> 2] | 0;
-       i55 = 64 + (i50 << 1 << 2) | 0;
+       i55 = 96 + (i50 << 1 << 2) | 0;
        do if ((i46 | 0) != (i55 | 0)) {
         if (i46 >>> 0 < i64 >>> 0) _abort();
         if ((HEAP32[i46 + 12 >> 2] | 0) == (i37 | 0)) break;
         _abort();
        } while (0);
        if ((i48 | 0) == (i46 | 0)) {
-        HEAP32[6] = HEAP32[6] & ~(1 << i50);
+        HEAP32[14] = HEAP32[14] & ~(1 << i50);
         break;
        }
        do if ((i48 | 0) == (i55 | 0)) i70 = i48 + 8 | 0; else {
@@ -985,17 +998,17 @@ function _malloc(i1) {
      i50 = i72 >>> 3;
      if (i72 >>> 0 < 256) {
       i38 = i50 << 1;
-      i47 = 64 + (i38 << 2) | 0;
-      i55 = HEAP32[6] | 0;
+      i47 = 96 + (i38 << 2) | 0;
+      i55 = HEAP32[14] | 0;
       i10 = 1 << i50;
       do if (!(i55 & i10)) {
-       HEAP32[6] = i55 | i10;
-       i73 = 64 + (i38 + 2 << 2) | 0;
+       HEAP32[14] = i55 | i10;
+       i73 = 96 + (i38 + 2 << 2) | 0;
        i74 = i47;
       } else {
-       i50 = 64 + (i38 + 2 << 2) | 0;
+       i50 = 96 + (i38 + 2 << 2) | 0;
        i42 = HEAP32[i50 >> 2] | 0;
-       if (i42 >>> 0 >= (HEAP32[10] | 0) >>> 0) {
+       if (i42 >>> 0 >= (HEAP32[18] | 0) >>> 0) {
         i73 = i50;
         i74 = i42;
         break;
@@ -1022,14 +1035,14 @@ function _malloc(i1) {
       i50 = 14 - (i51 | i10 | i55) + (i42 << i55 >>> 15) | 0;
       i75 = i72 >>> (i50 + 7 | 0) & 1 | i50 << 1;
      } while (0);
-     i38 = 328 + (i75 << 2) | 0;
+     i38 = 360 + (i75 << 2) | 0;
      HEAP32[i56 + (i58 + 28) >> 2] = i75;
      HEAP32[i56 + (i58 + 20) >> 2] = 0;
      HEAP32[i56 + (i58 + 16) >> 2] = 0;
-     i47 = HEAP32[7] | 0;
+     i47 = HEAP32[15] | 0;
      i50 = 1 << i75;
      if (!(i47 & i50)) {
-      HEAP32[7] = i47 | i50;
+      HEAP32[15] = i47 | i50;
       HEAP32[i38 >> 2] = i52;
       HEAP32[i56 + (i58 + 24) >> 2] = i38;
       HEAP32[i56 + (i58 + 12) >> 2] = i52;
@@ -1053,7 +1066,7 @@ function _malloc(i1) {
         i47 = i55;
        }
       }
-      if (i77 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+      if (i77 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
        HEAP32[i77 >> 2] = i52;
        HEAP32[i56 + (i58 + 24) >> 2] = i47;
        HEAP32[i56 + (i58 + 12) >> 2] = i52;
@@ -1063,7 +1076,7 @@ function _malloc(i1) {
      } else i78 = i50; while (0);
      i50 = i78 + 8 | 0;
      i38 = HEAP32[i50 >> 2] | 0;
-     i46 = HEAP32[10] | 0;
+     i46 = HEAP32[18] | 0;
      if (i78 >>> 0 >= i46 >>> 0 & i38 >>> 0 >= i46 >>> 0) {
       HEAP32[i38 + 12 >> 2] = i52;
       HEAP32[i50 >> 2] = i52;
@@ -1073,16 +1086,16 @@ function _malloc(i1) {
       break;
      } else _abort();
     } else {
-     i38 = (HEAP32[9] | 0) + i53 | 0;
-     HEAP32[9] = i38;
-     HEAP32[12] = i52;
+     i38 = (HEAP32[17] | 0) + i53 | 0;
+     HEAP32[17] = i38;
+     HEAP32[20] = i52;
      HEAP32[i56 + (i58 + 4) >> 2] = i38 | 1;
     } while (0);
     i14 = i56 + (i65 | 8) | 0;
     STACKTOP = i2;
     return i14 | 0;
    }
-   i58 = 472 | 0;
+   i58 = 504 | 0;
    while (1) {
     i79 = HEAP32[i58 >> 2] | 0;
     if (i79 >>> 0 <= i59 >>> 0 ? (i80 = HEAP32[i58 + 4 >> 2] | 0, i81 = i79 + i80 | 0, i81 >>> 0 > i59 >>> 0) : 0) break;
@@ -1096,20 +1109,20 @@ function _malloc(i1) {
    i53 = i56 + 8 | 0;
    if (!(i53 & 7)) i83 = 0; else i83 = 0 - i53 & 7;
    i53 = i57 + -40 - i83 | 0;
-   HEAP32[12] = i56 + i83;
-   HEAP32[9] = i53;
+   HEAP32[20] = i56 + i83;
+   HEAP32[17] = i53;
    HEAP32[i56 + (i83 + 4) >> 2] = i53 | 1;
    HEAP32[i56 + (i57 + -36) >> 2] = 40;
-   HEAP32[13] = HEAP32[128];
+   HEAP32[21] = HEAP32[136];
    HEAP32[i52 + 4 >> 2] = 27;
-   HEAP32[i58 + 0 >> 2] = HEAP32[118];
-   HEAP32[i58 + 4 >> 2] = HEAP32[119];
-   HEAP32[i58 + 8 >> 2] = HEAP32[120];
-   HEAP32[i58 + 12 >> 2] = HEAP32[121];
-   HEAP32[118] = i56;
-   HEAP32[119] = i57;
-   HEAP32[121] = 0;
-   HEAP32[120] = i58;
+   HEAP32[i58 + 0 >> 2] = HEAP32[126];
+   HEAP32[i58 + 4 >> 2] = HEAP32[127];
+   HEAP32[i58 + 8 >> 2] = HEAP32[128];
+   HEAP32[i58 + 12 >> 2] = HEAP32[129];
+   HEAP32[126] = i56;
+   HEAP32[127] = i57;
+   HEAP32[129] = 0;
+   HEAP32[128] = i58;
    i58 = i52 + 28 | 0;
    HEAP32[i58 >> 2] = 7;
    if ((i52 + 32 | 0) >>> 0 < i81 >>> 0) {
@@ -1129,17 +1142,17 @@ function _malloc(i1) {
     i58 = i53 >>> 3;
     if (i53 >>> 0 < 256) {
      i37 = i58 << 1;
-     i54 = 64 + (i37 << 2) | 0;
-     i38 = HEAP32[6] | 0;
+     i54 = 96 + (i37 << 2) | 0;
+     i38 = HEAP32[14] | 0;
      i50 = 1 << i58;
      do if (!(i38 & i50)) {
-      HEAP32[6] = i38 | i50;
-      i84 = 64 + (i37 + 2 << 2) | 0;
+      HEAP32[14] = i38 | i50;
+      i84 = 96 + (i37 + 2 << 2) | 0;
       i85 = i54;
      } else {
-      i58 = 64 + (i37 + 2 << 2) | 0;
+      i58 = 96 + (i37 + 2 << 2) | 0;
       i46 = HEAP32[i58 >> 2] | 0;
-      if (i46 >>> 0 >= (HEAP32[10] | 0) >>> 0) {
+      if (i46 >>> 0 >= (HEAP32[18] | 0) >>> 0) {
        i84 = i58;
        i85 = i46;
        break;
@@ -1162,14 +1175,14 @@ function _malloc(i1) {
      i46 = 14 - (i37 | i50 | i38) + (i52 << i38 >>> 15) | 0;
      i86 = i53 >>> (i46 + 7 | 0) & 1 | i46 << 1;
     } else i86 = 0;
-    i46 = 328 + (i86 << 2) | 0;
+    i46 = 360 + (i86 << 2) | 0;
     HEAP32[i59 + 28 >> 2] = i86;
     HEAP32[i59 + 20 >> 2] = 0;
     HEAP32[i59 + 16 >> 2] = 0;
-    i38 = HEAP32[7] | 0;
+    i38 = HEAP32[15] | 0;
     i52 = 1 << i86;
     if (!(i38 & i52)) {
-     HEAP32[7] = i38 | i52;
+     HEAP32[15] = i38 | i52;
      HEAP32[i46 >> 2] = i59;
      HEAP32[i59 + 24 >> 2] = i46;
      HEAP32[i59 + 12 >> 2] = i59;
@@ -1193,7 +1206,7 @@ function _malloc(i1) {
        i38 = i50;
       }
      }
-     if (i88 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+     if (i88 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
       HEAP32[i88 >> 2] = i59;
       HEAP32[i59 + 24 >> 2] = i38;
       HEAP32[i59 + 12 >> 2] = i59;
@@ -1203,7 +1216,7 @@ function _malloc(i1) {
     } else i89 = i52; while (0);
     i52 = i89 + 8 | 0;
     i53 = HEAP32[i52 >> 2] | 0;
-    i54 = HEAP32[10] | 0;
+    i54 = HEAP32[18] | 0;
     if (i89 >>> 0 >= i54 >>> 0 & i53 >>> 0 >= i54 >>> 0) {
      HEAP32[i53 + 12 >> 2] = i59;
      HEAP32[i52 >> 2] = i59;
@@ -1214,36 +1227,36 @@ function _malloc(i1) {
     } else _abort();
    }
   } else {
-   i53 = HEAP32[10] | 0;
-   if ((i53 | 0) == 0 | i56 >>> 0 < i53 >>> 0) HEAP32[10] = i56;
-   HEAP32[118] = i56;
-   HEAP32[119] = i57;
-   HEAP32[121] = 0;
-   HEAP32[15] = HEAP32[124];
-   HEAP32[14] = -1;
+   i53 = HEAP32[18] | 0;
+   if ((i53 | 0) == 0 | i56 >>> 0 < i53 >>> 0) HEAP32[18] = i56;
+   HEAP32[126] = i56;
+   HEAP32[127] = i57;
+   HEAP32[129] = 0;
+   HEAP32[23] = HEAP32[132];
+   HEAP32[22] = -1;
    i53 = 0;
    do {
     i52 = i53 << 1;
-    i54 = 64 + (i52 << 2) | 0;
-    HEAP32[64 + (i52 + 3 << 2) >> 2] = i54;
-    HEAP32[64 + (i52 + 2 << 2) >> 2] = i54;
+    i54 = 96 + (i52 << 2) | 0;
+    HEAP32[96 + (i52 + 3 << 2) >> 2] = i54;
+    HEAP32[96 + (i52 + 2 << 2) >> 2] = i54;
     i53 = i53 + 1 | 0;
    } while ((i53 | 0) != 32);
    i53 = i56 + 8 | 0;
    if (!(i53 & 7)) i90 = 0; else i90 = 0 - i53 & 7;
    i53 = i57 + -40 - i90 | 0;
-   HEAP32[12] = i56 + i90;
-   HEAP32[9] = i53;
+   HEAP32[20] = i56 + i90;
+   HEAP32[17] = i53;
    HEAP32[i56 + (i90 + 4) >> 2] = i53 | 1;
    HEAP32[i56 + (i57 + -36) >> 2] = 40;
-   HEAP32[13] = HEAP32[128];
+   HEAP32[21] = HEAP32[136];
   } while (0);
-  i57 = HEAP32[9] | 0;
+  i57 = HEAP32[17] | 0;
   if (i57 >>> 0 > i28 >>> 0) {
    i56 = i57 - i28 | 0;
-   HEAP32[9] = i56;
-   i57 = HEAP32[12] | 0;
-   HEAP32[12] = i57 + i28;
+   HEAP32[17] = i56;
+   i57 = HEAP32[20] | 0;
+   HEAP32[20] = i57 + i28;
    HEAP32[i57 + (i28 + 4) >> 2] = i56 | 1;
    HEAP32[i57 + 4 >> 2] = i28 | 3;
    i14 = i57 + 8 | 0;
@@ -1265,7 +1278,7 @@ function _free(i1) {
   return;
  }
  i3 = i1 + -8 | 0;
- i4 = HEAP32[10] | 0;
+ i4 = HEAP32[18] | 0;
  if (i3 >>> 0 < i4 >>> 0) _abort();
  i5 = HEAP32[i1 + -4 >> 2] | 0;
  i6 = i5 & 3;
@@ -1282,7 +1295,7 @@ function _free(i1) {
   i11 = i1 + i10 | 0;
   i12 = i9 + i7 | 0;
   if (i11 >>> 0 < i4 >>> 0) _abort();
-  if ((i11 | 0) == (HEAP32[11] | 0)) {
+  if ((i11 | 0) == (HEAP32[19] | 0)) {
    i13 = i1 + (i7 + -4) | 0;
    i14 = HEAP32[i13 >> 2] | 0;
    if ((i14 & 3 | 0) != 3) {
@@ -1290,7 +1303,7 @@ function _free(i1) {
     i16 = i12;
     break;
    }
-   HEAP32[8] = i12;
+   HEAP32[16] = i12;
    HEAP32[i13 >> 2] = i14 & -2;
    HEAP32[i1 + (i10 + 4) >> 2] = i12 | 1;
    HEAP32[i8 >> 2] = i12;
@@ -1301,13 +1314,13 @@ function _free(i1) {
   if (i9 >>> 0 < 256) {
    i9 = HEAP32[i1 + (i10 + 8) >> 2] | 0;
    i13 = HEAP32[i1 + (i10 + 12) >> 2] | 0;
-   i17 = 64 + (i14 << 1 << 2) | 0;
+   i17 = 96 + (i14 << 1 << 2) | 0;
    if ((i9 | 0) != (i17 | 0)) {
     if (i9 >>> 0 < i4 >>> 0) _abort();
     if ((HEAP32[i9 + 12 >> 2] | 0) != (i11 | 0)) _abort();
    }
    if ((i13 | 0) == (i9 | 0)) {
-    HEAP32[6] = HEAP32[6] & ~(1 << i14);
+    HEAP32[14] = HEAP32[14] & ~(1 << i14);
     i15 = i11;
     i16 = i12;
     break;
@@ -1377,17 +1390,17 @@ function _free(i1) {
   } while (0);
   if (i9) {
    i13 = HEAP32[i1 + (i10 + 28) >> 2] | 0;
-   i17 = 328 + (i13 << 2) | 0;
+   i17 = 360 + (i13 << 2) | 0;
    if ((i11 | 0) == (HEAP32[i17 >> 2] | 0)) {
     HEAP32[i17 >> 2] = i21;
     if (!i21) {
-     HEAP32[7] = HEAP32[7] & ~(1 << i13);
+     HEAP32[15] = HEAP32[15] & ~(1 << i13);
      i15 = i11;
      i16 = i12;
      break;
     }
    } else {
-    if (i9 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+    if (i9 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
     i13 = i9 + 16 | 0;
     if ((HEAP32[i13 >> 2] | 0) == (i11 | 0)) HEAP32[i13 >> 2] = i21; else HEAP32[i9 + 20 >> 2] = i21;
     if (!i21) {
@@ -1396,7 +1409,7 @@ function _free(i1) {
      break;
     }
    }
-   i13 = HEAP32[10] | 0;
+   i13 = HEAP32[18] | 0;
    if (i21 >>> 0 < i13 >>> 0) _abort();
    HEAP32[i21 + 24 >> 2] = i9;
    i17 = HEAP32[i1 + (i10 + 16) >> 2] | 0;
@@ -1406,7 +1419,7 @@ function _free(i1) {
     break;
    } while (0);
    i17 = HEAP32[i1 + (i10 + 20) >> 2] | 0;
-   if (i17) if (i17 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+   if (i17) if (i17 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
     HEAP32[i21 + 20 >> 2] = i17;
     HEAP32[i17 + 24 >> 2] = i21;
     i15 = i11;
@@ -1429,24 +1442,24 @@ function _free(i1) {
  i21 = HEAP32[i3 >> 2] | 0;
  if (!(i21 & 1)) _abort();
  if (!(i21 & 2)) {
-  if ((i8 | 0) == (HEAP32[12] | 0)) {
-   i4 = (HEAP32[9] | 0) + i16 | 0;
-   HEAP32[9] = i4;
-   HEAP32[12] = i15;
+  if ((i8 | 0) == (HEAP32[20] | 0)) {
+   i4 = (HEAP32[17] | 0) + i16 | 0;
+   HEAP32[17] = i4;
+   HEAP32[20] = i15;
    HEAP32[i15 + 4 >> 2] = i4 | 1;
-   if ((i15 | 0) != (HEAP32[11] | 0)) {
+   if ((i15 | 0) != (HEAP32[19] | 0)) {
     STACKTOP = i2;
     return;
    }
-   HEAP32[11] = 0;
-   HEAP32[8] = 0;
+   HEAP32[19] = 0;
+   HEAP32[16] = 0;
    STACKTOP = i2;
    return;
   }
-  if ((i8 | 0) == (HEAP32[11] | 0)) {
-   i4 = (HEAP32[8] | 0) + i16 | 0;
-   HEAP32[8] = i4;
-   HEAP32[11] = i15;
+  if ((i8 | 0) == (HEAP32[19] | 0)) {
+   i4 = (HEAP32[16] | 0) + i16 | 0;
+   HEAP32[16] = i4;
+   HEAP32[19] = i15;
    HEAP32[i15 + 4 >> 2] = i4 | 1;
    HEAP32[i15 + i4 >> 2] = i4;
    STACKTOP = i2;
@@ -1489,14 +1502,14 @@ function _free(i1) {
       i26 = i6;
      }
     }
-    if (i26 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+    if (i26 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
      HEAP32[i26 >> 2] = 0;
      i24 = i25;
      break;
     }
    } else {
     i6 = HEAP32[i1 + i7 >> 2] | 0;
-    if (i6 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+    if (i6 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
     i5 = i6 + 12 | 0;
     if ((HEAP32[i5 >> 2] | 0) != (i8 | 0)) _abort();
     i17 = i18 + 8 | 0;
@@ -1509,20 +1522,20 @@ function _free(i1) {
    } while (0);
    if (i23) {
     i18 = HEAP32[i1 + (i7 + 20) >> 2] | 0;
-    i12 = 328 + (i18 << 2) | 0;
+    i12 = 360 + (i18 << 2) | 0;
     if ((i8 | 0) == (HEAP32[i12 >> 2] | 0)) {
      HEAP32[i12 >> 2] = i24;
      if (!i24) {
-      HEAP32[7] = HEAP32[7] & ~(1 << i18);
+      HEAP32[15] = HEAP32[15] & ~(1 << i18);
       break;
      }
     } else {
-     if (i23 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+     if (i23 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
      i18 = i23 + 16 | 0;
      if ((HEAP32[i18 >> 2] | 0) == (i8 | 0)) HEAP32[i18 >> 2] = i24; else HEAP32[i23 + 20 >> 2] = i24;
      if (!i24) break;
     }
-    i18 = HEAP32[10] | 0;
+    i18 = HEAP32[18] | 0;
     if (i24 >>> 0 < i18 >>> 0) _abort();
     HEAP32[i24 + 24 >> 2] = i23;
     i12 = HEAP32[i1 + (i7 + 8) >> 2] | 0;
@@ -1532,7 +1545,7 @@ function _free(i1) {
      break;
     } while (0);
     i12 = HEAP32[i1 + (i7 + 12) >> 2] | 0;
-    if (i12) if (i12 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+    if (i12) if (i12 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
      HEAP32[i24 + 20 >> 2] = i12;
      HEAP32[i12 + 24 >> 2] = i24;
      break;
@@ -1541,17 +1554,17 @@ function _free(i1) {
   } else {
    i12 = HEAP32[i1 + i7 >> 2] | 0;
    i18 = HEAP32[i1 + (i7 | 4) >> 2] | 0;
-   i23 = 64 + (i22 << 1 << 2) | 0;
+   i23 = 96 + (i22 << 1 << 2) | 0;
    if ((i12 | 0) != (i23 | 0)) {
-    if (i12 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+    if (i12 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
     if ((HEAP32[i12 + 12 >> 2] | 0) != (i8 | 0)) _abort();
    }
    if ((i18 | 0) == (i12 | 0)) {
-    HEAP32[6] = HEAP32[6] & ~(1 << i22);
+    HEAP32[14] = HEAP32[14] & ~(1 << i22);
     break;
    }
    if ((i18 | 0) != (i23 | 0)) {
-    if (i18 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort();
+    if (i18 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort();
     i23 = i18 + 8 | 0;
     if ((HEAP32[i23 >> 2] | 0) == (i8 | 0)) i27 = i23; else _abort();
    } else i27 = i18 + 8 | 0;
@@ -1560,8 +1573,8 @@ function _free(i1) {
   } while (0);
   HEAP32[i15 + 4 >> 2] = i4 | 1;
   HEAP32[i15 + i4 >> 2] = i4;
-  if ((i15 | 0) == (HEAP32[11] | 0)) {
-   HEAP32[8] = i4;
+  if ((i15 | 0) == (HEAP32[19] | 0)) {
+   HEAP32[16] = i4;
    STACKTOP = i2;
    return;
   } else i28 = i4;
@@ -1574,19 +1587,19 @@ function _free(i1) {
  i16 = i28 >>> 3;
  if (i28 >>> 0 < 256) {
   i21 = i16 << 1;
-  i3 = 64 + (i21 << 2) | 0;
-  i4 = HEAP32[6] | 0;
+  i3 = 96 + (i21 << 2) | 0;
+  i4 = HEAP32[14] | 0;
   i27 = 1 << i16;
   if (i4 & i27) {
-   i16 = 64 + (i21 + 2 << 2) | 0;
+   i16 = 96 + (i21 + 2 << 2) | 0;
    i8 = HEAP32[i16 >> 2] | 0;
-   if (i8 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+   if (i8 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
     i29 = i16;
     i30 = i8;
    }
   } else {
-   HEAP32[6] = i4 | i27;
-   i29 = 64 + (i21 + 2 << 2) | 0;
+   HEAP32[14] = i4 | i27;
+   i29 = 96 + (i21 + 2 << 2) | 0;
    i30 = i3;
   }
   HEAP32[i29 >> 2] = i15;
@@ -1606,16 +1619,16 @@ function _free(i1) {
   i27 = 14 - (i3 | i30 | i29) + (i21 << i29 >>> 15) | 0;
   i31 = i28 >>> (i27 + 7 | 0) & 1 | i27 << 1;
  } else i31 = 0;
- i27 = 328 + (i31 << 2) | 0;
+ i27 = 360 + (i31 << 2) | 0;
  HEAP32[i15 + 28 >> 2] = i31;
  HEAP32[i15 + 20 >> 2] = 0;
  HEAP32[i15 + 16 >> 2] = 0;
- i29 = HEAP32[7] | 0;
+ i29 = HEAP32[15] | 0;
  i21 = 1 << i31;
  L199 : do if (i29 & i21) {
   i30 = HEAP32[i27 >> 2] | 0;
   if ((i31 | 0) == 31) i32 = 0; else i32 = 25 - (i31 >>> 1) | 0;
-  L204 : do if ((HEAP32[i30 + 4 >> 2] & -8 | 0) != (i28 | 0)) {
+  L205 : do if ((HEAP32[i30 + 4 >> 2] & -8 | 0) != (i28 | 0)) {
    i3 = i28 << i32;
    i4 = i30;
    while (1) {
@@ -1624,13 +1637,13 @@ function _free(i1) {
     if (!i8) break;
     if ((HEAP32[i8 + 4 >> 2] & -8 | 0) == (i28 | 0)) {
      i34 = i8;
-     break L204;
+     break L205;
     } else {
      i3 = i3 << 1;
      i4 = i8;
     }
    }
-   if (i33 >>> 0 < (HEAP32[10] | 0) >>> 0) _abort(); else {
+   if (i33 >>> 0 < (HEAP32[18] | 0) >>> 0) _abort(); else {
     HEAP32[i33 >> 2] = i15;
     HEAP32[i15 + 24 >> 2] = i4;
     HEAP32[i15 + 12 >> 2] = i15;
@@ -1640,7 +1653,7 @@ function _free(i1) {
   } else i34 = i30; while (0);
   i30 = i34 + 8 | 0;
   i3 = HEAP32[i30 >> 2] | 0;
-  i8 = HEAP32[10] | 0;
+  i8 = HEAP32[18] | 0;
   if (i34 >>> 0 >= i8 >>> 0 & i3 >>> 0 >= i8 >>> 0) {
    HEAP32[i3 + 12 >> 2] = i15;
    HEAP32[i30 >> 2] = i15;
@@ -1650,15 +1663,15 @@ function _free(i1) {
    break;
   } else _abort();
  } else {
-  HEAP32[7] = i29 | i21;
+  HEAP32[15] = i29 | i21;
   HEAP32[i27 >> 2] = i15;
   HEAP32[i15 + 24 >> 2] = i27;
   HEAP32[i15 + 12 >> 2] = i15;
   HEAP32[i15 + 8 >> 2] = i15;
  } while (0);
- i15 = (HEAP32[14] | 0) + -1 | 0;
- HEAP32[14] = i15;
- if (!i15) i35 = 480 | 0; else {
+ i15 = (HEAP32[22] | 0) + -1 | 0;
+ HEAP32[22] = i15;
+ if (!i15) i35 = 512 | 0; else {
   STACKTOP = i2;
   return;
  }
@@ -1666,9 +1679,48 @@ function _free(i1) {
   i15 = HEAP32[i35 >> 2] | 0;
   if (!i15) break; else i35 = i15 + 8 | 0;
  }
- HEAP32[14] = -1;
+ HEAP32[22] = -1;
  STACKTOP = i2;
  return;
+}
+function _main(i1, i2) {
+ i1 = i1 | 0;
+ i2 = i2 | 0;
+ var i3 = 0, i4 = 0, i5 = 0, i6 = 0, i7 = 0, i8 = 0, i9 = 0, i10 = 0;
+ _env_init();
+ i2 = STACKTOP;
+ STACKTOP = STACKTOP + 32 | 0;
+ i1 = i2;
+ i3 = i2 + 16 | 0;
+ i4 = i2 + 8 | 0;
+ _gettimeofday(i3 | 0, 0) | 0;
+ i5 = _malloc(1048576) | 0;
+ i6 = 0;
+ i7 = 0;
+ do {
+  i8 = 0;
+  do {
+   HEAP8[i5 + i8 >> 0] = i8 + i6;
+   i8 = i8 + 1 | 0;
+  } while ((i8 | 0) != 1048576);
+  i9 = 0;
+  i10 = i6;
+  do {
+   i10 = ((HEAPU8[i5 + i9 >> 0] | 0) & 1) + i10 | 0;
+   i9 = i9 + 1 | 0;
+  } while ((i9 | 0) != 1048576);
+  i6 = (i10 | 0) % 1e3 | 0;
+  i7 = i7 + 1 | 0;
+ } while ((i7 | 0) != 800);
+ _gettimeofday(i4 | 0, 0) | 0;
+ HEAP32[i1 >> 2] = i6;
+ _printf(8, i1 | 0) | 0;
+ HEAPF64[tempDoublePtr >> 3] = +((HEAP32[i4 + 4 >> 2] | 0) - (HEAP32[i3 + 4 >> 2] | 0) | 0) / 1.0e6 + +((HEAP32[i4 >> 2] | 0) - (HEAP32[i3 >> 2] | 0) | 0);
+ HEAP32[i1 >> 2] = HEAP32[tempDoublePtr >> 2];
+ HEAP32[i1 + 4 >> 2] = HEAP32[tempDoublePtr + 4 >> 2];
+ _printf(24, i1 | 0) | 0;
+ STACKTOP = i2;
+ return STACKTOP|0;
 }
 function _memcpy(i1, i2, i3) {
  i1 = i1 | 0;
@@ -1699,36 +1751,6 @@ function _memcpy(i1, i2, i3) {
   i3 = i3 - 1 | 0;
  }
  return i4 | 0;
-}
-function _main(i1, i2) {
- i1 = i1 | 0;
- i2 = i2 | 0;
- var i3 = 0, i4 = 0, i5 = 0, i6 = 0, i7 = 0, i8 = 0;
- i2 = STACKTOP;
- STACKTOP = STACKTOP + 16 | 0;
- i1 = i2;
- i3 = _malloc(1048576) | 0;
- i4 = 0;
- i5 = 0;
- do {
-  i6 = 0;
-  do {
-   HEAP8[i3 + i6 >> 0] = i6 + i4;
-   i6 = i6 + 1 | 0;
-  } while ((i6 | 0) != 1048576);
-  i7 = i4;
-  i8 = 0;
-  do {
-   i7 = ((HEAPU8[i3 + i8 >> 0] | 0) & 1) + i7 | 0;
-   i8 = i8 + 1 | 0;
-  } while ((i8 | 0) != 1048576);
-  i4 = (i7 | 0) % 1e3 | 0;
-  i5 = i5 + 1 | 0;
- } while ((i5 | 0) != 800);
- HEAP32[i1 >> 2] = i4;
- _printf(8, i1 | 0) | 0;
- STACKTOP = i2;
- return 0;
 }
 function _memset(i1, i2, i3) {
  i1 = i1 | 0;
@@ -1819,5 +1841,6 @@ function stackSave() {
 // EMSCRIPTEN_END_FUNCS
   
 
-  return { _strlen: _strlen, _free: _free, _main: _main, _memset: _memset, _malloc: _malloc, _memcpy: _memcpy, runPostSets: runPostSets, stackAlloc: stackAlloc, stackSave: stackSave, stackRestore: stackRestore, setThrew: setThrew, setTempRet0: setTempRet0, getTempRet0: getTempRet0 };
+  return { _strlen: _strlen, _free: _free, _main: _main, _memset: _memset, _malloc: _malloc, _memcpy: _memcpy, runPostSets: runPostSets, stackAlloc: stackAlloc, stackSave: stackSave, stackRestore: stackRestore, setThrew: setThrew, setTempRet0: setTempRet0, getTempRet0: getTempRet0};
 }
+// EMSCRIPTEN_END_ASM
