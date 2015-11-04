@@ -20,9 +20,7 @@ function run() {
     cp ${case}.runtime.js emscripten-runtime.js
     cp ${case}.js demo.js
     $d8 run-asm.js
-  fi
 
-  if [ -e "${case}.wasm" ]; then
     echo "  === wasm ==="
     cp ${case}.runtime.js emscripten-runtime.js
     $packer ${case}.js ${case}.wasm
@@ -35,7 +33,8 @@ function run() {
 cases="primes
 copy
 corrections
-memops"
+memops
+fannkuch"
 
 for case in $cases
 do
