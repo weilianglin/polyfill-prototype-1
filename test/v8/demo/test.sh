@@ -34,7 +34,9 @@ cases="primes
 copy
 corrections
 memops
-fannkuch"
+fannkuch
+fasta
+skinning"
 
 for case in $cases
 do
