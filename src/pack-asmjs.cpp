@@ -3057,12 +3057,28 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
     }
     case CallNode::Indirect: {
       if (ctx == Ctx::Expr)
-        m.write().code(call.expr);
+        m.write().code(opcode(call.expr));
       else
-        m.write().code(call.stmt);
+        m.write().code(opcode(call.stmt));
       auto& index = call.callee.as<IndexNode>();
       auto func_ptr_tbl_i = m.func_ptr_table_index(index.array.as<NameNode>().str);
+#ifdef V8_FORMAT
+      // CallIndirect, func_signature_index, index_inside_func_table
+      m.write().imm_u32(m.func_ptr_table(func_ptr_tbl_i).sig_index);
+      uint32_t func_index = 0, tb_index = 0;
+      if (func_ptr_tbl_i != 0) {
+        for (auto& ft : m.func_ptr_tables()) {
+          if (tb_index++ == func_ptr_tbl_i) break;
+          func_index += ft.elems.size();
+        }
+        m.write().code(v8::kExprI32Add);
+        m.write().code(v8::kExprI32Const);
+        m.write().fixed_width<uint32_t>(func_index);
+      }
+#else
+      // CallIndirect, func_ptr_tbl_index, index_inside_func_ptr_tbl
       m.write().imm_u32(func_ptr_tbl_i);
+#endif
       write_expr(m, f, index.index->as<BinaryNode>().lhs);
       assert(call.compute_length() == m.sig(m.func_ptr_table(func_ptr_tbl_i).sig_index).args.size());
       break;
@@ -3540,7 +3556,24 @@ write_data_seg_info_section(Module& m) {
 
 void
 write_function_table(Module& m) {
-  // TODO(weiliang): support Function Table
+  // V8-native only has one function table while asm.js has many function tables.
+  // v8 function table binary layout:
+  // [kDeclFunctionTable, func_table_count, function_index1, function_index2, ...]
+  // Internally, v8-native will build function table like below
+  // [sig1, sig2, sig3, ...., code1, code2, code3 ...]
+  if (m.func_ptr_tables().size() > 0) {
+    m.write().fixed_width<uint8_t>(v8::kDeclFunctionTable);
+    uint32_t num = 0;
+    for (auto& func_ptr_table : m.func_ptr_tables()) {
+      num += func_ptr_table.elems.size();
+    }
+    m.write().imm_u32(num);
+    for (auto& func_ptr_table : m.func_ptr_tables()) {
+      for (auto elem : func_ptr_table.elems) {
+        m.write().fixed_width<uint16_t>(elem);
+      }
+    }
+  }
 }
 
 void

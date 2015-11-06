@@ -15,6 +15,7 @@ assertEquals(100, module.four());
 assertEquals(100.1, module.five());
 assertEquals(123, module.six());
 assertEquals(1.23, module.seven());
+assertEquals(123, module.eight());
 
 
 print("test call.wasm");
@@ -234,3 +235,10 @@ assertEqualsDelta(3.14, module.getF32(0), 0.00001);
 
 module.setF64(0, 3.1415926);
 assertEquals(3.1415926, module.getF64(0));
+
+print("test call_indirect.wasm");
+var module = WASM.instantiateModule(readbuffer("call_indirect.wasm"));
+assertEquals(120, module.call(0, 100, 20));
+assertEquals(80, module.call(1, 100, 20));
+assertEquals(2000, module.call(2, 100, 20));
+assertEquals(5, module.call(3, 100, 20));

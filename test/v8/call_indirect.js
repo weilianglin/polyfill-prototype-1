@@ -29,42 +29,40 @@ var $t=$a.Math.clz32;
 var $u=$a.NaN;
 var $v=$a.Infinity;
 var $vi = 0;
-var $vi2 = 0;
 var $vd = 0.;
-function $w(k){
-k=k|0;
-return k;
+function iadd(x, y){
+x=x|0;
+y=y|0;
+return (x+y)|0;
 }
-function $x(l){
-l=+l;
-return l;
+function isub(x, y){
+x=x|0;
+y=y|0;
+return (x-y)|0;
 }
-function $y(m){
-m=j(m);
-return m;
+function imul(x, y){
+x=x|0;
+y=y|0;
+return (x*y)|0;
 }
-function $z() {
-var a=0;
-a=100;
-return a|0;
+function idiv(x, y){
+x=x|0;
+y=y|0;
+return (x/y)|0;
 }
-function $aa() {
-var a=0.;
-a=100.1;
-return +a;
+
+function call(index, x, y) {
+index=index|0;
+x=x|0;
+y=y|0;
+if (index == 0) return ft1[index&1](x, y)|0;
+if (index == 1) return ft1[index&1](x, y)|0;
+if (index == 2) return ft2[(index%2)&1](x, y)|0;
+if (index == 3) return ft2[(index%2)&1](x, y)|0;
+return -1;
 }
-function $ab() {
-$vi = 123;
-return $vi|0;
-}
-function $ac() {
-$vd = 1.23;
-return +$vd;
-}
-function $ad() {
-$vi = 123;
-$vi2 = 1234;
-return $vi|0;
-}
-return {one:$w,two:$x,three:$y,four:$z,five:$aa,six:$ab,seven:$ac,eight:$ad};
+
+var ft1=[iadd, isub];
+var ft2=[imul, idiv];
+return {call:call};
 }
