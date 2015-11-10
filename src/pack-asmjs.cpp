@@ -1723,25 +1723,65 @@ analyze_import(Module& m, IString name, DotNode& dot)
     else if (dot.name.equals("sqrt"))
       m.add_stdlib_func(name, PreTypeCode::Sqrt);
     else if (dot.name.equals("cos"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::Cos);
+#else
+      m.add_func_import(name, "_cos");
+#endif
     else if (dot.name.equals("sin"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::Sin);
+#else
+      m.add_func_import(name, "_sin");
+#endif
     else if (dot.name.equals("tan"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::Tan);
+#else
+      m.add_func_import(name, "_tan");
+#endif
     else if (dot.name.equals("acos"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::ACos);
+#else
+      m.add_func_import(name, "_acos");
+#endif
     else if (dot.name.equals("asin"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::ASin);
+#else
+      m.add_func_import(name, "_asin");
+#endif
     else if (dot.name.equals("atan"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::ATan);
+#else
+      m.add_func_import(name, "_atan");
+#endif
     else if (dot.name.equals("atan2"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::ATan2);
+#else
+      m.add_func_import(name, "_atan2");
+#endif
     else if (dot.name.equals("exp"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::Exp);
+#else
+      m.add_func_import(name, "_exp");
+#endif
     else if (dot.name.equals("log"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::Ln);
+#else
+      m.add_func_import(name, "_log");
+#endif
     else if (dot.name.equals("pow"))
+#ifndef V8_FORMAT
       m.add_stdlib_func(name, F64::Pow);
+#else
+      m.add_func_import(name, "_pow");
+#endif
     else
       unreachable<void>();
   } else if (dot.base.as<NameNode>().str == m.stdlib()) {
@@ -1925,8 +1965,19 @@ analyze_stdlib_call(Module& m, Function& f, CallNode& call)
             case I32::Clz: return AsmJSType::Fixnum;
             default: unreachable<void>();
           }
-        case RType::F64:
+        case RType::F64: {
+#ifdef V8_FORMAT
+          // transcendental functions into import function list
+          call.kind = CallNode::Import;
+          call.expr = F64::CallImp;
+          call.stmt = Stmt::CallImp;
+          Signature sig(RType::F64);
+          sig.args.push_back(Type::F64);
+          IString internal = call.callee.as<NameNode>().str;
+          call.import_preindex = m.add_import_sig(internal, move(sig));
+#endif
           return AsmJSType::Double;
+        }
         default:
           unreachable<void>();
       }

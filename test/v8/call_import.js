@@ -33,5 +33,13 @@ function $w(k){
 k=k|0;
 return imp_fun(k)|0;
 }
-return {one:$w};
+function sin(a) {
+a=+a;
+return +$h(a);
+}
+function cos(a) {
+a=+a;
+return +$g(a);
+}
+return {one:$w, sin:sin, cos:cos};
 }

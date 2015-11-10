@@ -27,9 +27,13 @@ var ffi = new Object();
 ffi.foo = function(k) {
   return k * 2;
 }
+ffi._sin = Math.sin;
+ffi._cos = Math.cos;
 print("test call_import.wasm");
 var module = WASM.instantiateModule(readbuffer("call_import.wasm"), ffi);
 assertEquals(200, module.one(100));
+assertEquals(0.0015926529164868282, module.sin(3.14));
+assertEquals(-0.9999987317275395, module.cos(3.14));
 
 
 print("test if.wasm");

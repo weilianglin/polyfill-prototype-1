@@ -158,7 +158,7 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::Ceil: return v8::kExprF64Ceil;  // TODO: v8 decoder does not support
     case F64::Floor: return v8::kExprF64Floor;  // TODO: v8 decoder does not support
     case F64::Sqrt: return v8::kExprF64Sqrt;
-    // wasm spec and v8 do not support these opcode
+    // Transfer to call JavaScript builtins
     case F64::Cos:
     case F64::Sin:
     case F64::Tan:
@@ -169,6 +169,7 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::Exp:
     case F64::Ln:
     case F64::Pow:
+      return v8::kExprCallFunction;
     default:
       return unreachable<v8::WasmOpcode>();
   }
