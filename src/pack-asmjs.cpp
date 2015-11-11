@@ -773,12 +773,17 @@ public:
   void set_exported(bool exported) { exported_ = exported; }
   void inc_block_depth() { block_depth_++; }
   void dec_block_depth() { block_depth_--; }
-  void push_loop_switch() { depth_stack_.push_back(block_depth_); inc_block_depth(); }
-  void pop_loop_switch() { assert(!depth_stack_.empty()); depth_stack_.pop_back(); dec_block_depth(); }
+  void push_loop_switch() { depth_stack_.push_back(block_depth_); inc_block_depth(); inc_block_depth();}
+  void pop_loop_switch() { assert(!depth_stack_.empty()); depth_stack_.pop_back(); dec_block_depth(); dec_block_depth();}
   uint32_t closest_loop_switch() const
   {
     assert(!depth_stack_.empty());
     return block_depth_ - depth_stack_.back() - 1;
+  }
+  uint32_t return_depth() const
+  {
+    assert(block_depth_ > 0);
+    return block_depth_ - 1;
   }
 #endif
 
@@ -3001,11 +3006,18 @@ write_binary(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
     case BinaryNode::Comma:
       assert(ctx == Ctx::Expr);
       m.write().code(opcode(binary.expr));
-#ifndef V8_FORMAT
+#ifdef V8_FORMAT
+      // TODO: a, b, c, d only needs one block
+      f.inc_block_depth();
+      m.write().fixed_width<uint8_t>(2);
+#else
       m.write().code(binary.comma_lhs_type);
 #endif
       write_expr(m, f, binary.lhs);
       write_expr(m, f, binary.rhs);
+#ifdef V8_FORMAT
+      f.dec_block_depth();
+#endif
       break;
     case BinaryNode::Generic:
       assert(ctx == Ctx::Expr);
@@ -3144,7 +3156,7 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
 #ifdef V8_FORMAT
       // I32::Abs value >=0 ? value : -value
       if (call.expr == I32::Abs) {
-        m.write().code(v8::kExprIf);
+        m.write().code(v8::kExprIfThen);
         m.write().code(v8::kExprI32GeS);
         write_expr(m, f, *call.first);
         m.write().code(v8::kExprI32Const);
@@ -3220,9 +3232,20 @@ write_expr(Module& m, Function& f, const AstNode& expr)
 void
 write_return(Module& m, Function& f, const ReturnNode& ret)
 {
+#ifdef V8_FORMAT
+  // TODO: Don''t need kExprBr if it's the last stmt of the function
+  m.write().code(v8::kExprBr);
+  m.write().fixed_width<uint8_t>(f.return_depth());
+#else
   m.write().code(opcode(Stmt::Ret));
-  if (ret.expr)
+#endif
+  if (ret.expr) {
     write_expr(m, f, *ret.expr);
+    return;
+  }
+#ifdef V8_FORMAT
+  m.write().code(v8::kExprNop);
+#endif
 }
 
 void
@@ -3273,14 +3296,14 @@ void
 write_while(Module& m, Function& f, const WhileNode& w)
 {
 #ifdef V8_FORMAT
-  m.write().code(v8::kStmtLoop);
+  m.write().code(v8::kExprLoop);
   f.push_loop_switch();
   m.write().fixed_width<uint8_t>(1);
-  m.write().code(v8::kStmtIfThen);
+  m.write().code(v8::kExprIf);
   write_expr(m, f, w.cond);
-  write_stmt(m, f, w.body);
-  m.write().code(v8::kStmtBreak);
+  m.write().code(v8::kExprBr);
   m.write().fixed_width<uint8_t>(0);
+  write_stmt(m, f, w.body);
   f.pop_loop_switch();
 #else
   m.write().code(Stmt::While);
@@ -3293,15 +3316,15 @@ void
 write_do(Module& m, Function& f, const DoNode& d)
 {
 #ifdef V8_FORMAT
-  m.write().code(v8::kStmtLoop);
+  m.write().code(v8::kExprLoop);
   f.push_loop_switch();
   m.write().fixed_width<uint8_t>(2);
   write_stmt(m, f, d.body);
-  m.write().code(v8::kStmtIf);
-  m.write().code(v8::kExprBoolNot);
+  m.write().code(v8::kExprIf);
   write_expr(m, f, d.cond);
-  m.write().code(v8::kStmtBreak);
+  m.write().code(v8::kExprBr);
   m.write().fixed_width<uint8_t>(0);
+  m.write().code(v8::kExprNop);
   f.pop_loop_switch();
 #else
   m.write().code(Stmt::Do);
@@ -3328,6 +3351,7 @@ write_break(Module& m, Function& f, const BreakNode& b)
     m.write().code(opcode(Stmt::Break));
 #ifdef V8_FORMAT
     m.write().fixed_width<uint8_t>(f.closest_loop_switch());
+    m.write().code(v8::kExprNop);
 #endif
     return;
   }
@@ -3335,6 +3359,7 @@ write_break(Module& m, Function& f, const BreakNode& b)
   m.write().code(opcode(Stmt::BreakLabel));
 #ifdef V8_FORMAT
   m.write().fixed_width<uint8_t>(f.label_depth(b.str));
+  m.write().code(v8::kExprNop);
 #else
   m.write().imm_u32(f.label_depth(b.str));
 #endif
@@ -3346,14 +3371,16 @@ write_continue(Module& m, Function& f, const ContinueNode& c)
   if (!c.str) {
     m.write().code(opcode(Stmt::Continue));
 #ifdef V8_FORMAT
-    m.write().fixed_width<uint8_t>(f.closest_loop_switch());
+    m.write().fixed_width<uint8_t>(f.closest_loop_switch() - 1);
+    m.write().code(v8::kExprNop);
 #endif
     return;
   }
 
   m.write().code(opcode(Stmt::ContinueLabel));
 #ifdef V8_FORMAT
-  m.write().fixed_width<uint8_t>(f.label_depth(c.str));
+  m.write().fixed_width<uint8_t>(f.label_depth(c.str) - 1);
+  m.write().code(v8::kExprNop);
 #else
   m.write().imm_u32(f.label_depth(c.str));
 #endif
@@ -3363,7 +3390,8 @@ void
 write_switch(Module& m, Function& f, const SwitchNode& s)
 {
 #ifdef V8_FORMAT
-  m.write().code(v8::kStmtSwitch);
+  // TODO: v8 native doesn't support
+  /*m.write().code(v8::kStmtSwitch);
   f.push_loop_switch();
   m.write().fixed_width<uint8_t>(s.compute_length());
   write_expr(m, f, s.expr);
@@ -3385,7 +3413,8 @@ write_switch(Module& m, Function& f, const SwitchNode& s)
       f.dec_block_depth();
     }
   }
-  f.pop_loop_switch();
+  f.pop_loop_switch();*/
+  return;
 #else
   m.write().code(Stmt::Switch);
   m.write().imm_u32(s.compute_length());
@@ -3547,15 +3576,20 @@ v8_write_signature_section(Module& m)
 void
 write_function_body(Module& m, Function& f, const AstNode* stmts) {
   uint32_t num_stmts = 0;
-  for (const AstNode* n = stmts; n; n = n->next) {
+  for (const AstNode* n = stmts; n; n = n->next)
     num_stmts++;
-    write_stmt(m, f, *n);
-  }
-
   // v8-native does not support empty functions.
   if (num_stmts == 0) {
-    m.write().code(opcode(Stmt::Ret));
+    m.write().code(v8::kExprNop);
+    return;
   }
+  // Add implicit block for return
+  m.write().code(opcode(Stmt::Block));
+  f.inc_block_depth();
+  m.write().fixed_width<uint8_t>(num_stmts);
+  for (const AstNode* n = stmts; n; n = n->next)
+    write_stmt(m, f, *n);
+  f.dec_block_depth();
 }
 
 void

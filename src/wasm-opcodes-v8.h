@@ -34,6 +34,7 @@ enum MemType {
   kMemF64 = 9
 };
 */
+// Copy from v8/src/utils.h
 // ----------------------------------------------------------------------------
 // BitField is a help template for encoding and decode bitfield with
 // unsigned content.
@@ -86,8 +87,10 @@ class BitField16 : public BitFieldBase<T, shift, size, uint16_t> {};
 template<class T, int shift, int size>
 class BitField : public BitFieldBase<T, shift, size, uint32_t> { };
 
+
 template<class T, int shift, int size>
 class BitField64 : public BitFieldBase<T, shift, size, uint64_t> { };
+
 // Functionality related to encoding memory accesses.
 struct MemoryAccess {
   // Atomicity annotations for access to the memory and globals.
@@ -111,41 +114,36 @@ struct MemoryAccess {
   typedef BitField<Atomicity, 4, 2> AtomicityField;
 };
 
+// typedef Signature<LocalType> FunctionSig;
 
-// Statements.
-#define FOREACH_STMT_OPCODE(V) \
-  V(Nop, 0x00, _)              \
-  V(If, 0x01, _)               \
-  V(IfThen, 0x02, _)           \
-  V(Block, 0x03, _)            \
-  V(Switch, 0x04, _)           \
-  V(SwitchNf, 0x05, _)         \
-  V(Loop, 0x06, _)             \
-  V(Continue, 0x07, _)         \
-  V(Break, 0x08, _)            \
-  V(Return, 0x09, _)
+// Control expressions and blocks.
+#define FOREACH_CONTROL_OPCODE(V) \
+  V(Nop,    0x00, _)           \
+  V(Block,  0x01, _)           \
+  V(Loop,   0x02, _)           \
+  V(If,     0x03, _)	       \
+  V(IfThen, 0x04, _)           \
+  V(Select, 0x05, _)	       \
+  V(Br,     0x06, _)           \
+  V(BrIf,   0x07, _)
+/* TODO  V(TableSwitch, 0x08, _)			\ */
 
-// Miscellaenous and polymorphic expressions.
-#define FOREACH_MISC_EXPR_OPCODE(V) \
-  V(I8Const, 0x10, _)               \
-  V(I32Const, 0x11, _)              \
-  V(I64Const, 0x12, _)              \
-  V(F64Const, 0x13, _)              \
-  V(F32Const, 0x14, _)              \
-  V(GetLocal, 0x15, _)              \
-  V(SetLocal, 0x16, _)              \
-  V(LoadGlobal, 0x17, _)            \
-  V(StoreGlobal, 0x18, _)           \
-  V(CallFunction, 0x19, _)          \
-  V(CallIndirect, 0x1a, _)          \
-  V(If, 0x1b, _)                    \
-  V(Comma, 0x1c, _)                 \
-  V(Block, 0x1d, _)                 \
-  V(Loop, 0x1e, _)                  \
-  V(Break, 0x1f, _)         
+// Constants, locals, globals, and calls.
+#define FOREACH_MISC_OPCODE(V) \
+  V(I8Const, 0x09, _)          \
+  V(I32Const, 0x0a, _)         \
+  V(I64Const, 0x0b, _)         \
+  V(F64Const, 0x0c, _)         \
+  V(F32Const, 0x0d, _)         \
+  V(GetLocal, 0x0e, _)         \
+  V(SetLocal, 0x0f, _)         \
+  V(LoadGlobal, 0x10, _)       \
+  V(StoreGlobal, 0x11, _)      \
+  V(CallFunction, 0x12, _)     \
+  V(CallIndirect, 0x13, _)
 
 // Load memory expressions.
-#define FOREACH_LOAD_MEM_EXPR_OPCODE(V) \
+#define FOREACH_LOAD_MEM_OPCODE(V) \
   V(I32LoadMemL, 0x20, i_i)             \
   V(I64LoadMemL, 0x21, l_i)             \
   V(F32LoadMemL, 0x22, f_i)             \
@@ -156,7 +154,7 @@ struct MemoryAccess {
   V(F64LoadMemH, 0x27, d_l)
 
 // Store memory expressions.
-#define FOREACH_STORE_MEM_EXPR_OPCODE(V) \
+#define FOREACH_STORE_MEM_OPCODE(V) \
   V(I32StoreMemL, 0x30, i_ii)            \
   V(I64StoreMemL, 0x31, l_il)            \
   V(F32StoreMemL, 0x32, f_if)            \
@@ -167,13 +165,14 @@ struct MemoryAccess {
   V(F64StoreMemH, 0x37, d_ld)
 
 // Load memory expressions.
-#define FOREACH_MISC_MEM_EXPR_OPCODE(V) \
-  V(PageSize,   0x38, i_v)              \
+#define FOREACH_MISC_MEM_OPCODE(V) \
+  V(PageSize, 0x38, i_v)                \
+  V(MemorySize, 0x3b, i_v)              \
   V(ResizeMemL, 0x39, i_i)              \
   V(ResizeMemH, 0x3a, l_l)
 
 // Expressions with signatures.
-#define FOREACH_SIMPLE_EXPR_OPCODE(V) \
+#define FOREACH_SIMPLE_OPCODE(V) \
   V(I32Add, 0x40, i_ii)               \
   V(I32Sub, 0x41, i_ii)               \
   V(I32Mul, 0x42, i_ii)               \
@@ -199,7 +198,7 @@ struct MemoryAccess {
   V(I32GeU, 0x56, i_ii)               \
   V(I32Clz, 0x57, i_i)                \
   V(I32Ctz, 0x58, i_i)                \
-  V(I32PopCnt, 0x59, i_i)             \
+  V(I32Popcnt, 0x59, i_i)             \
   V(BoolNot, 0x5a, i_i)               \
   V(I64Add, 0x5b, l_ll)               \
   V(I64Sub, 0x5c, l_ll)               \
@@ -212,8 +211,8 @@ struct MemoryAccess {
   V(I64Ior, 0x63, l_ll)               \
   V(I64Xor, 0x64, l_ll)               \
   V(I64Shl, 0x65, l_ll)               \
-  V(I64ShrU, 0x66, l_ll)               \
-  V(I64ShrS, 0x67, l_ll)               \
+  V(I64ShrU, 0x66, l_ll)              \
+  V(I64ShrS, 0x67, l_ll)              \
   V(I64Eq, 0x68, i_ll)                \
   V(I64Ne, 0x69, i_ll)                \
   V(I64LtS, 0x6a, i_ll)               \
@@ -226,7 +225,7 @@ struct MemoryAccess {
   V(I64GeU, 0x71, i_ll)               \
   V(I64Clz, 0x72, i_l)                \
   V(I64Ctz, 0x73, i_l)                \
-  V(I64PopCnt, 0x74, i_l)             \
+  V(I64Popcnt, 0x74, i_l)             \
   V(F32Add, 0x75, f_ff)               \
   V(F32Sub, 0x76, f_ff)               \
   V(F32Mul, 0x77, f_ff)               \
@@ -291,20 +290,16 @@ struct MemoryAccess {
   V(F64ConvertF32, 0xb2, d_f)         \
   V(F64ReinterpretI64, 0xb3, d_l)     \
   V(I32ReinterpretF32, 0xb4, i_f)     \
-  V(I64ReinterpretF64, 0xb5, l_d)     
-
-// All expression opcodes.
-#define FOREACH_EXPR_OPCODE(V)     \
-  FOREACH_SIMPLE_EXPR_OPCODE(V)    \
-  FOREACH_MISC_EXPR_OPCODE(V)      \
-  FOREACH_STORE_MEM_EXPR_OPCODE(V) \
-  FOREACH_LOAD_MEM_EXPR_OPCODE(V)  \
-  FOREACH_MISC_MEM_EXPR_OPCODE(V)  
+  V(I64ReinterpretF64, 0xb5, l_d)
 
 // All opcodes.
-#define FOREACH_OPCODE(V) \
-  FOREACH_STMT_OPCODE(V)  \
-  FOREACH_EXPR_OPCODE(V)
+#define FOREACH_OPCODE(V)     \
+  FOREACH_CONTROL_OPCODE(V)        \
+  FOREACH_MISC_OPCODE(V)      \
+  FOREACH_SIMPLE_OPCODE(V)    \
+  FOREACH_STORE_MEM_OPCODE(V) \
+  FOREACH_LOAD_MEM_OPCODE(V)  \
+  FOREACH_MISC_MEM_OPCODE(V)
 
 // All signatures.
 #define FOREACH_SIGNATURE(V)         \
@@ -316,11 +311,12 @@ struct MemoryAccess {
   V(i_dd, kAstI32, kAstF64, kAstF64) \
   V(i_d, kAstI32, kAstF64)           \
   V(i_l, kAstI32, kAstI64)           \
+  V(i_li, kAstI32, kAstI64, kAstI32) \
   V(l_ll, kAstI64, kAstI64, kAstI64) \
   V(i_ll, kAstI32, kAstI64, kAstI64) \
   V(l_l, kAstI64, kAstI64)           \
   V(l_i, kAstI64, kAstI32)           \
-  V(l_f, kAstI64, kAstF64)           \
+  V(l_f, kAstI64, kAstF32)           \
   V(l_d, kAstI64, kAstF64)           \
   V(f_ff, kAstF32, kAstF32, kAstF32) \
   V(f_f, kAstF32, kAstF32)           \
@@ -339,17 +335,13 @@ struct MemoryAccess {
   V(f_lf, kAstF32, kAstI64, kAstF32)
 
 enum WasmOpcode {
-// Declare statement opcodes.
-#define DECLARE_NAMED_ENUM(name, opcode, sig) kStmt##name = opcode,
-  FOREACH_STMT_OPCODE(DECLARE_NAMED_ENUM)
-#undef DECLARE_NAMED_ENUM
-
 // Declare expression opcodes.
 #define DECLARE_NAMED_ENUM(name, opcode, sig) kExpr##name = opcode,
-      FOREACH_EXPR_OPCODE(DECLARE_NAMED_ENUM)
+      FOREACH_OPCODE(DECLARE_NAMED_ENUM)
 #undef DECLARE_NAMED_ENUM
 };
 
+// Copy from v8-native-prototype/src/wasm/wasm-module.h
 enum WasmSectionDeclCode {
   kDeclMemory = 0x00,
   kDeclSignatures = 0x01,
@@ -433,7 +425,7 @@ class WasmOpcodes {
         return store ? kExprF64StoreMemL : kExprF64LoadMemL;
       default:
         UNREACHABLE();
-        return kStmtNop;
+        return kExprNop;
     }
   }
 

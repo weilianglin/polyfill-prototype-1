@@ -34,8 +34,8 @@ v8::WasmOpcode opcode(I32 i) {
     case I32::CallInt: return v8::kExprCallFunction;
     case I32::CallInd: return v8::kExprCallIndirect;
     case I32::CallImp: return v8::kExprCallFunction;
-    case I32::Cond: return v8::kExprIf;
-    case I32::Comma: return v8::kExprComma;
+    case I32::Cond: return v8::kExprIfThen;
+    case I32::Comma: return v8::kExprBlock;
     case I32::FromF32: return v8::kExprI32SConvertF32;
     case I32::FromF64: return v8::kExprI32SConvertF64;
     case I32::Neg: // Handled elsewhere
@@ -105,8 +105,8 @@ v8::WasmOpcode opcode(F32 f) {
       return v8::kExprF32StoreMemL;
     case F32::CallInt: return v8::kExprCallFunction;
     case F32::CallInd: return v8::kExprCallIndirect;
-    case F32::Cond: return v8::kExprIf;
-    case F32::Comma: return v8::kExprComma;
+    case F32::Cond: return v8::kExprIfThen;
+    case F32::Comma: return v8::kExprBlock;
     case F32::FromS32: return v8::kExprF32SConvertI32;
     case F32::FromU32: return v8::kExprF32UConvertI32;
     case F32::FromF64: return v8::kExprF32ConvertF64;
@@ -140,8 +140,8 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::CallInt: return v8::kExprCallFunction;
     case F64::CallInd: return v8::kExprCallIndirect;
     case F64::CallImp: return v8::kExprCallFunction;
-    case F64::Cond: return v8::kExprIf;
-    case F64::Comma: return v8::kExprComma;
+    case F64::Cond: return v8::kExprIfThen;
+    case F64::Comma: return v8::kExprBlock;
     case F64::FromS32: return v8::kExprF64SConvertI32;
     case F64::FromU32: return v8::kExprF64UConvertI32;
     case F64::FromF32: return v8::kExprF64ConvertF32;
@@ -251,18 +251,20 @@ v8::WasmOpcode opcode(const Stmt& s) {
     case Stmt::CallInt: return v8::kExprCallFunction;
     case Stmt::CallInd: return v8::kExprCallIndirect;
     case Stmt::CallImp: return v8::kExprCallFunction;
-    case Stmt::Ret: return v8::kStmtReturn;
-    case Stmt::Block: return v8::kStmtBlock;
-    case Stmt::IfThen: return v8::kStmtIf;
-    case Stmt::IfElse: return v8::kStmtIfThen;
+    case Stmt::Ret: // Handled elsewhere
+      return unreachable<v8::WasmOpcode>();
+    case Stmt::Block: return v8::kExprBlock;
+    case Stmt::IfThen: return v8::kExprIf;
+    case Stmt::IfElse: return v8::kExprIfThen;
     case Stmt::While:
     case Stmt::Do:
     case Stmt::Label:
       return unreachable<v8::WasmOpcode>();
-    case Stmt::Break: return v8::kStmtBreak;
-    case Stmt::BreakLabel: return v8::kStmtBreak;
-    case Stmt::Continue: return v8::kStmtContinue;
-    case Stmt::ContinueLabel: return v8::kStmtContinue;
+    case Stmt::Break:
+    case Stmt::BreakLabel:
+    case Stmt::Continue:
+    case Stmt::ContinueLabel:
+      return v8::kExprBr;
     case Stmt::Switch:
     default:
       return unreachable<v8::WasmOpcode>();
