@@ -11,18 +11,18 @@ function run() {
   echo "====== $case ======"
   if [ -e "${case}.cpp" ]; then
     echo "  === c++ ==="
-    g++ -O2 -o ${case} ${case}.cpp
+    #TODO: use LLVM
+    g++ -Wno-div-by-zero -O2 -o ${case} ${case}.cpp
     ./${case}
   fi
 
   if [ -e "${case}.js" ]; then
-    echo "  === asm.js ==="
     cp ${case}.runtime.js emscripten-runtime.js
+    echo "  === asm.js ==="
     cp ${case}.js demo.js
     $d8 run-asm.js
 
     echo "  === wasm ==="
-    cp ${case}.runtime.js emscripten-runtime.js
     $packer ${case}.js ${case}.wasm
     cp ${case}.wasm demo.wasm
     $d8 run-wasm.js
@@ -37,6 +37,10 @@ memops
 fannkuch
 fasta
 skinning"
+
+if [ $# -eq 1 ]; then
+  cases=$1
+fi
 
 for case in $cases
 do
