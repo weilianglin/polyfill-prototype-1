@@ -34,7 +34,7 @@ v8::WasmOpcode opcode(I32 i) {
     case I32::CallInt: return v8::kExprCallFunction;
     case I32::CallInd: return v8::kExprCallIndirect;
     case I32::CallImp: return v8::kExprCallFunction;
-    case I32::Cond: return v8::kExprIfThen;
+    case I32::Cond: return v8::kExprSelect;
     case I32::Comma: return v8::kExprBlock;
     case I32::FromF32: return v8::kExprI32SConvertF32;
     case I32::FromF64: return v8::kExprI32SConvertF64;
@@ -105,7 +105,7 @@ v8::WasmOpcode opcode(F32 f) {
       return v8::kExprF32StoreMemL;
     case F32::CallInt: return v8::kExprCallFunction;
     case F32::CallInd: return v8::kExprCallIndirect;
-    case F32::Cond: return v8::kExprIfThen;
+    case F32::Cond: return v8::kExprSelect;
     case F32::Comma: return v8::kExprBlock;
     case F32::FromS32: return v8::kExprF32SConvertI32;
     case F32::FromU32: return v8::kExprF32UConvertI32;
@@ -140,7 +140,7 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::CallInt: return v8::kExprCallFunction;
     case F64::CallInd: return v8::kExprCallIndirect;
     case F64::CallImp: return v8::kExprCallFunction;
-    case F64::Cond: return v8::kExprIfThen;
+    case F64::Cond: return v8::kExprSelect;
     case F64::Comma: return v8::kExprBlock;
     case F64::FromS32: return v8::kExprF64SConvertI32;
     case F64::FromU32: return v8::kExprF64UConvertI32;
