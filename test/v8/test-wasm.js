@@ -145,6 +145,7 @@ var module = WASM.instantiateModule(readbuffer("comma.wasm"));
 assertEquals(200, module.one(100, 200));
 assertEquals(2.2, module.two(1.1, 2.2));
 assertEqualsDelta(2.2, module.three(1.1, 2.2), 0.00001);
+assertEquals(106, module.four(100, 200));
 
 print("test float64.wasm");
 var module = WASM.instantiateModule(readbuffer("float64.wasm"));

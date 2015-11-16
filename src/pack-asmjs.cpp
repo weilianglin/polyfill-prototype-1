@@ -3003,22 +3003,33 @@ write_binary(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
     case BinaryNode::Bitwise:
       write_bitwise(m, f, binary, ctx);
       break;
-    case BinaryNode::Comma:
+    case BinaryNode::Comma: {
       assert(ctx == Ctx::Expr);
       m.write().code(opcode(binary.expr));
 #ifdef V8_FORMAT
-      // TODO: a, b, c, d only needs one block
       f.inc_block_depth();
-      m.write().fixed_width<uint8_t>(2);
+
+      // find all successive comma.
+      vector<const AstNode*> exprs;
+      exprs.push_back(&binary.lhs);
+      const AstNode* node = &binary.rhs;
+      while (node->is<BinaryNode>() && node->as<BinaryNode>().kind == BinaryNode::Comma) {
+        exprs.push_back(&(node->as<BinaryNode>().lhs));
+        node = &(node->as<BinaryNode>().rhs);
+      }
+      exprs.push_back(node);
+
+      m.write().fixed_width<uint8_t>(exprs.size());
+      for (auto expr : exprs)
+        write_expr(m, f, *expr);
+      f.dec_block_depth();
 #else
       m.write().code(binary.comma_lhs_type);
-#endif
       write_expr(m, f, binary.lhs);
       write_expr(m, f, binary.rhs);
-#ifdef V8_FORMAT
-      f.dec_block_depth();
 #endif
       break;
+    }
     case BinaryNode::Generic:
       assert(ctx == Ctx::Expr);
       m.write().code(opcode(binary.expr));
@@ -3233,7 +3244,6 @@ void
 write_return(Module& m, Function& f, const ReturnNode& ret)
 {
 #ifdef V8_FORMAT
-  // TODO: Don''t need kExprBr if it's the last stmt of the function
   m.write().code(v8::kExprBr);
   m.write().fixed_width<uint8_t>(f.return_depth());
 #else
@@ -3587,8 +3597,19 @@ write_function_body(Module& m, Function& f, const AstNode* stmts) {
   m.write().code(opcode(Stmt::Block));
   f.inc_block_depth();
   m.write().fixed_width<uint8_t>(num_stmts);
-  for (const AstNode* n = stmts; n; n = n->next)
+  const AstNode* n = stmts;
+  for (;n->next; n = n->next)
     write_stmt(m, f, *n);
+  // Last return stmt becomes just an expr.
+  if (n->is<ReturnNode>()) {
+    const AstNode* expr = n->as<ReturnNode>().expr;
+    if (expr)
+      write_expr(m, f, *expr);
+    else
+      m.write().code(v8::kExprNop);
+  } else {
+    write_stmt(m, f, *n);
+  }
   f.dec_block_depth();
 }
 

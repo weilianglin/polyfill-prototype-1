@@ -46,5 +46,11 @@ function $y(a, b){
   return 10.0, j(a), j(b);
 }
 
-return {one:$w, two:$x, three:$y};
+function $z(a, b){
+  a=a|0;
+  b=b|0;
+  return 10, a|0, b|0, (5,6), a+(5,6)|0;
+}
+
+return {one:$w, two:$x, three:$y, four:$z};
 }
