@@ -6,6 +6,7 @@ Module.asmLibraryArg.getSTACKTOP = function getSTACKTOP() { return STACKTOP; };
 Module.asmLibraryArg.getSTACK_MAX = function getSTACK_MAX() { return STACK_MAX; }
 Module.asmLibraryArg.getTempDoublePtr = function getTempDoublePtr() { return tempDoublePtr; }
 Module.asmLibraryArg.getABORT = function getABORT() { return ABORT; }
+Module.asmLibraryArg.getInf = function getInf() { return Infinity; }
 
 // 2. load asm.js or wasm module
 load("load_asmModule.js");

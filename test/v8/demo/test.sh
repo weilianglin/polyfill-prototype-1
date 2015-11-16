@@ -36,7 +36,8 @@ corrections
 memops
 fannkuch
 fasta
-skinning"
+skinning
+raytrace"
 
 if [ $# -eq 1 ]; then
   cases=$1
