@@ -780,11 +780,6 @@ public:
     assert(!depth_stack_.empty());
     return block_depth_ - depth_stack_.back() - 1;
   }
-  uint32_t return_depth() const
-  {
-    assert(block_depth_ > 0);
-    return block_depth_ - 1;
-  }
 #endif
 
   void push_label(IString name)
@@ -3243,19 +3238,9 @@ write_expr(Module& m, Function& f, const AstNode& expr)
 void
 write_return(Module& m, Function& f, const ReturnNode& ret)
 {
-#ifdef V8_FORMAT
-  m.write().code(v8::kExprBr);
-  m.write().fixed_width<uint8_t>(f.return_depth());
-#else
   m.write().code(opcode(Stmt::Ret));
-#endif
-  if (ret.expr) {
+  if (ret.expr)
     write_expr(m, f, *ret.expr);
-    return;
-  }
-#ifdef V8_FORMAT
-  m.write().code(v8::kExprNop);
-#endif
 }
 
 void
@@ -3593,10 +3578,6 @@ write_function_body(Module& m, Function& f, const AstNode* stmts) {
     m.write().code(v8::kExprNop);
     return;
   }
-  // Add implicit block for return
-  m.write().code(opcode(Stmt::Block));
-  f.inc_block_depth();
-  m.write().fixed_width<uint8_t>(num_stmts);
   const AstNode* n = stmts;
   for (;n->next; n = n->next)
     write_stmt(m, f, *n);
@@ -3610,7 +3591,6 @@ write_function_body(Module& m, Function& f, const AstNode* stmts) {
   } else {
     write_stmt(m, f, *n);
   }
-  f.dec_block_depth();
 }
 
 void

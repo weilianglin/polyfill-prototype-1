@@ -125,8 +125,10 @@ struct MemoryAccess {
   V(IfThen, 0x04, _)           \
   V(Select, 0x05, _)	       \
   V(Br,     0x06, _)           \
-  V(BrIf,   0x07, _)
-/* TODO  V(TableSwitch, 0x08, _)			\ */
+  V(BrIf,   0x07, _)           \
+  V(TableSwitch, 0x08, _)      \
+  V(Return,      0x14, _)      \
+  V(Unreachable, 0x15, _)
 
 // Constants, locals, globals, and calls.
 #define FOREACH_MISC_OPCODE(V) \

@@ -251,8 +251,7 @@ v8::WasmOpcode opcode(const Stmt& s) {
     case Stmt::CallInt: return v8::kExprCallFunction;
     case Stmt::CallInd: return v8::kExprCallIndirect;
     case Stmt::CallImp: return v8::kExprCallFunction;
-    case Stmt::Ret: // Handled elsewhere
-      return unreachable<v8::WasmOpcode>();
+    case Stmt::Ret: return v8::kExprReturn;
     case Stmt::Block: return v8::kExprBlock;
     case Stmt::IfThen: return v8::kExprIf;
     case Stmt::IfElse: return v8::kExprIfThen;
