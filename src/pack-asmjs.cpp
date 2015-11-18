@@ -19,6 +19,8 @@
 using namespace std;
 using cashew::IString;
 
+bool FLAG_size_trace = false;
+bool FLAG_size_trace_full = false;
 namespace asmjs {
 
 class Module;
@@ -93,10 +95,8 @@ public:
   inline void imm_u32(uint32_t u32);
   inline void imm_s32(int32_t s32);
   void c_str(const char*);
-#ifdef V8_FORMAT
   long tellp() { return os_.tellp(); }
   void seekp(long pos) { os_.seekp(pos); }
-#endif
 };
 
 template <class T>
@@ -2716,9 +2716,40 @@ analyze_module(Module& m, const FuncNode& module)
 // =================================================================================================
 // Write (second) pass
 
+class SizeTrace {
+public:
+  static int depth_;
+  SizeTrace(const char* name, Module& m, bool trace = false)
+    : name_(name), module_(m), start_(0) {
+    trace_ = FLAG_size_trace_full ? true : (FLAG_size_trace ? trace : false);
+    if (trace_) {
+      start_ = module_.write().tellp();
+      depth_++;
+    }
+  }
+
+  ~SizeTrace() {
+    if (trace_) {
+      long size = module_.write().tellp() - start_;
+      for (int i = 0; i < depth_; i++) printf(" ");
+      printf("%s size, %ld\n", name_, size);
+      depth_--;
+    }
+  }
+
+private:
+  const char* name_;
+  Module& module_;
+  long start_;
+  bool trace_;
+};
+
+int SizeTrace::depth_ = 0;
+
 void
 write_signature_section(Module& m)
 {
+  SizeTrace st("signature section", m, true);
   m.write().imm_u32(m.sigs().size());
   for (auto& sig : m.sigs()) {
     m.write().code(sig.ret);
@@ -2731,6 +2762,7 @@ write_signature_section(Module& m)
 void
 write_function_import_section(Module& m)
 {
+  SizeTrace st("function import section", m, true);
   m.write().imm_u32(m.func_imps().size());
   m.write().imm_u32(m.num_func_imp_sigs());
   for (auto& func_imp : m.func_imps()) {
@@ -2744,6 +2776,7 @@ write_function_import_section(Module& m)
 void
 write_constant_pool_section(Module& m)
 {
+  SizeTrace st("const pool section", m, true);
   m.write().imm_u32(m.i32s().size());
   m.write().imm_u32(m.f32s().size());
   m.write().imm_u32(m.f64s().size());
@@ -2758,6 +2791,7 @@ write_constant_pool_section(Module& m)
 void
 write_global_section(Module& m)
 {
+  SizeTrace st("global section", m, true);
   m.write().imm_u32(m.num_global_i32_zero());
   m.write().imm_u32(m.num_global_f32_zero());
   m.write().imm_u32(m.num_global_f64_zero());
@@ -2775,6 +2809,7 @@ write_global_section(Module& m)
 void
 write_function_declaration_section(Module& m)
 {
+  SizeTrace st("function declaration section", m, true);
   m.write().imm_u32(m.funcs().size());
   for (auto& f : m.funcs())
     m.write().imm_u32(f.sig_index());
@@ -2783,6 +2818,7 @@ write_function_declaration_section(Module& m)
 void
 write_function_pointer_tables(Module& m)
 {
+  SizeTrace st("function pointer table section", m, true);
   m.write().imm_u32(m.func_ptr_tables().size());
   for (auto& func_ptr_table : m.func_ptr_tables()) {
     m.write().imm_u32(func_ptr_table.sig_index);
@@ -2802,6 +2838,7 @@ template <class T, class TWithImm>
 void
 write_num_lit_pool(Module& m, uint32_t pool_index)
 {
+  SizeTrace st("num_lit_pool", m);
   if (pool_index < ImmLimit) {
     m.write().code(TWithImm::LitPool, pool_index);
   } else {
@@ -2813,6 +2850,7 @@ write_num_lit_pool(Module& m, uint32_t pool_index)
 void
 write_num_lit(Module& m, Function& f, NumLit lit, unsigned lshift = 0)
 {
+  SizeTrace st("num_lit", m);
   uint32_t pool_index;
   if (m.lit_has_pool_index(lit, lshift, &pool_index)) {
     switch (lit.type()) {
@@ -2865,6 +2903,7 @@ is_num_lit_u32(Module& m, const AstNode& ast, uint32_t u32)
 void
 write_bitwise(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 {
+  SizeTrace st("bitwise", m);
   if (is_int_coerced_call(binary)) {
     write_call(m, f, binary.lhs.as<CallNode>(), ctx);
     return;
@@ -2902,6 +2941,7 @@ write_bitwise(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 void
 write_index(Module& m, Function& f, const IndexNode& index)
 {
+  SizeTrace st("index", m);
   if (index.offset > 0)
     m.write().imm_u32(index.offset);
 
@@ -2914,6 +2954,7 @@ write_index(Module& m, Function& f, const IndexNode& index)
 void
 write_assign(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 {
+  SizeTrace st("assign", m);
   uint32_t index = binary.lhs.as<NameNode>().index;
   if (ctx == Ctx::Expr) {
     m.write().code(opcode(binary.expr));
@@ -2932,6 +2973,7 @@ write_assign(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 void
 write_store(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 {
+  SizeTrace st("store", m);
   // The simple case
   if (ctx == Ctx::Stmt || binary.store_rhs_conv.is_bad()) {
     if (ctx == Ctx::Stmt) {
@@ -2952,7 +2994,9 @@ write_store(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
     return;
   }
 
+#ifdef V8_FORMAT
   unreachable<void>();
+#endif
   // The complex case: the stored value must be converted, but the result of the SetLoc expression
   // must be pre-conversion. Store the pre-conversion value in a temporary local (that we allocated
   // during the analyze phase), convert and store in the lhs of a Comma, and return the
@@ -2988,6 +3032,7 @@ write_store(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 void
 write_binary(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 {
+  SizeTrace st("binary", m);
   switch (binary.kind) {
     case BinaryNode::Assign:
       write_assign(m, f, binary, ctx);
@@ -3037,6 +3082,7 @@ write_binary(Module& m, Function& f, const BinaryNode& binary, Ctx ctx)
 void
 write_name(Module& m, Function& f, const NameNode& name)
 {
+  SizeTrace st("name", m);
   if (!name.expr_with_imm.is_bad() && name.index < ImmLimit) {
     m.write().code(name.expr_with_imm, name.index);
   } else if (name.expr.is_bad()) {
@@ -3050,6 +3096,7 @@ write_name(Module& m, Function& f, const NameNode& name)
 void
 write_prefix(Module& m, Function& f, const PrefixNode& prefix, Ctx ctx)
 {
+  SizeTrace st("prefix", m);
   if (is_double_coerced_call(prefix)) {
     if (!prefix.expr.is_bad())
       m.write().code(opcode(prefix.expr));
@@ -3088,6 +3135,7 @@ write_prefix(Module& m, Function& f, const PrefixNode& prefix, Ctx ctx)
 void
 write_ternary(Module& m, Function& f, const TernaryNode& ternary)
 {
+  SizeTrace st("ternary", m);
   m.write().code(opcode(ternary.expr));
   write_expr(m, f, ternary.cond);
   write_expr(m, f, ternary.lhs);
@@ -3097,6 +3145,7 @@ write_ternary(Module& m, Function& f, const TernaryNode& ternary)
 void
 write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
 {
+  SizeTrace st("call", m);
   switch (call.kind) {
     case CallNode::Import: {
       if (ctx == Ctx::Expr)
@@ -3197,6 +3246,7 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
 void
 write_load(Module& m, Function& f, const IndexNode& index)
 {
+  SizeTrace st("load", m);
   m.write().code(opcode(index.expr));
 #ifdef V8_FORMAT
   m.write().fixed_width<uint8_t>(LoadStoreAccessOf(index.expr));
@@ -3207,6 +3257,7 @@ write_load(Module& m, Function& f, const IndexNode& index)
 void
 write_expr(Module& m, Function& f, const AstNode& expr)
 {
+  SizeTrace st("expr", m);
   if (NumLit::is(m, expr)) {
     write_num_lit(m, f, NumLit(m, expr));
   } else {
@@ -3238,6 +3289,7 @@ write_expr(Module& m, Function& f, const AstNode& expr)
 void
 write_return(Module& m, Function& f, const ReturnNode& ret)
 {
+  SizeTrace st("return", m);
   m.write().code(opcode(Stmt::Ret));
   if (ret.expr)
     write_expr(m, f, *ret.expr);
@@ -3246,6 +3298,7 @@ write_return(Module& m, Function& f, const ReturnNode& ret)
 void
 write_stmt_list(Module& m, Function& f, const AstNode* stmts)
 {
+  SizeTrace st("stmt_list", m);
   uint32_t num_stmts = 0;
   for (const AstNode* p = stmts; p; p = p->next)
     num_stmts++;
@@ -3262,6 +3315,7 @@ write_stmt_list(Module& m, Function& f, const AstNode* stmts)
 void
 write_block(Module& m, Function& f, const BlockNode& block)
 {
+  SizeTrace st("block", m);
   m.write().code(opcode(Stmt::Block));
 #ifdef V8_FORMAT
   f.inc_block_depth();
@@ -3275,6 +3329,7 @@ write_block(Module& m, Function& f, const BlockNode& block)
 void
 write_if(Module& m, Function& f, const IfNode& i)
 {
+  SizeTrace st("if", m);
   if (i.if_false) {
     m.write().code(opcode(Stmt::IfElse));
     write_expr(m, f, i.cond);
@@ -3290,6 +3345,7 @@ write_if(Module& m, Function& f, const IfNode& i)
 void
 write_while(Module& m, Function& f, const WhileNode& w)
 {
+  SizeTrace st("while", m);
 #ifdef V8_FORMAT
   m.write().code(v8::kExprLoop);
   f.push_loop();
@@ -3310,6 +3366,7 @@ write_while(Module& m, Function& f, const WhileNode& w)
 void
 write_do(Module& m, Function& f, const DoNode& d)
 {
+  SizeTrace st("do-while", m);
 #ifdef V8_FORMAT
   m.write().code(v8::kExprLoop);
   f.push_loop();
@@ -3331,6 +3388,7 @@ write_do(Module& m, Function& f, const DoNode& d)
 void
 write_label(Module& m, Function& f, const LabelNode& l)
 {
+  SizeTrace st("label", m);
 #ifndef V8_FORMAT
   m.write().code(Stmt::Label);
 #endif
@@ -3342,6 +3400,7 @@ write_label(Module& m, Function& f, const LabelNode& l)
 void
 write_break(Module& m, Function& f, const BreakNode& b)
 {
+  SizeTrace st("break", m);
   if (!b.str) {
     m.write().code(opcode(Stmt::Break));
 #ifdef V8_FORMAT
@@ -3363,6 +3422,7 @@ write_break(Module& m, Function& f, const BreakNode& b)
 void
 write_continue(Module& m, Function& f, const ContinueNode& c)
 {
+  SizeTrace st("continue", m);
   if (!c.str) {
     m.write().code(opcode(Stmt::Continue));
 #ifdef V8_FORMAT
@@ -3384,6 +3444,7 @@ write_continue(Module& m, Function& f, const ContinueNode& c)
 void
 write_switch(Module& m, Function& f, const SwitchNode& s)
 {
+  SizeTrace st("switch", m);
 #ifdef V8_FORMAT
   unordered_map<int32_t, int32_t> table_to_case;
   int32_t table_count = -1;
@@ -3493,6 +3554,7 @@ write_switch(Module& m, Function& f, const SwitchNode& s)
 void
 write_stmt(Module& m, Function& f, const AstNode& stmt)
 {
+  SizeTrace st("stmt", m);
   switch (stmt.which) {
     case AstNode::Call: write_call(m, f, stmt.as<CallNode>(), Ctx::Stmt); break;
     case AstNode::Prefix: write_prefix(m, f, stmt.as<PrefixNode>(), Ctx::Stmt); break;
@@ -3513,6 +3575,7 @@ write_stmt(Module& m, Function& f, const AstNode& stmt)
 void
 write_function_definition(Module& m, Function& f)
 {
+  SizeTrace st("function", m);
   if (f.num_i32_vars() < ImmLimit && f.num_f32_vars() == 0 && f.num_f64_vars() == 0) {
     m.write().code(VarTypesWithImm::OnlyI32, f.num_i32_vars());
   } else {
@@ -3534,6 +3597,7 @@ write_function_definition(Module& m, Function& f)
 void
 write_function_definition_section(Module& m)
 {
+  SizeTrace st("function definition section", m);
   for (auto& f : m.funcs())
     write_function_definition(m, f);
 }
@@ -3541,6 +3605,7 @@ write_function_definition_section(Module& m)
 void
 write_export_section(Module& m)
 {
+  SizeTrace st("export section", m);
   if (m.exports().size() == 1 && !m.exports()[0].external) {
     m.write().code(ExportFormat::Default);
     m.write().imm_u32(m.exports().front().internal);
@@ -3557,6 +3622,7 @@ write_export_section(Module& m)
 #ifdef V8_FORMAT
 void
 write_memory_declaration(Module& m) {
+  SizeTrace st("mem section", m, true);
   m.write().fixed_width<uint8_t>(v8::kDeclMemory);
   m.write().fixed_width<uint8_t>(24);  // min memory size
   m.write().fixed_width<uint8_t>(24);  // max memory size
@@ -3575,6 +3641,7 @@ write_module_header(Module& m) {
 
 void
 write_global_variable_section(Module& m) {
+  SizeTrace st("global section", m, true);
   m.write_global_variable_section();
 }
 
@@ -3596,6 +3663,7 @@ get_v8_type_code(uint8_t t) {
 void
 v8_write_signature_section(Module& m)
 {
+  SizeTrace st("signature section", m, true);
   if (m.sigs().size() > 0) {
     m.write().fixed_width<uint8_t>(v8::kDeclSignatures);
     m.write().imm_u32(m.sigs().size());
@@ -3630,10 +3698,12 @@ write_function_body(Module& m, Function& f, const AstNode* stmts) {
 void
 write_function_section(Module& m)
 {
+  SizeTrace st("function section", m, true);
   if (m.num_funcs() > 0) {
     m.write().fixed_width<uint8_t>(v8::kDeclFunctions);
     m.write().imm_u32(m.num_funcs());
     for (auto& f : m.funcs()) {
+      SizeTrace st("function", m);
       uint8_t decl_bit = (f.is_exported() ? v8::kDeclFunctionName | v8::kDeclFunctionExport : 0) |
                          (f.num_vars() ? v8::kDeclFunctionLocals : 0);
       m.write().fixed_width<uint8_t>(decl_bit);
@@ -3671,11 +3741,13 @@ write_function_section(Module& m)
 
 void
 write_data_seg_info_section(Module& m) {
+  SizeTrace st("data section", m, true);
   m.write_data_seg_info_section();
 }
 
 void
 write_function_table(Module& m) {
+  SizeTrace st("function table section", m, true);
   // V8-native only has one function table while asm.js has many function tables.
   // v8 function table binary layout:
   // [kDeclFunctionTable, func_table_count, function_index1, function_index2, ...]
@@ -3698,10 +3770,12 @@ write_function_table(Module& m) {
 
 void
 write_data_body_section(Module& m) {
+  SizeTrace st("data body section", m, true);
   m.write_data_body_section();
 }
 
 void patch_offsets(Module& m) {
+  long end = m.write().tellp();
   // 1. The offset of name, start and end of code in function info section
   for (auto& f : m.funcs()) {
     // name if exported
@@ -3735,12 +3809,14 @@ void patch_offsets(Module& m) {
 
   // 3. src offset in the data segment info section
   m.patch_data_seg_info_section();
+  m.write().seekp(end);
 }
 #endif
 
 void
 write_module(Module& m)
 {
+  SizeTrace st("module section", m, true);
 #ifdef V8_FORMAT
   // 1. emit memory declaration
   write_memory_declaration(m);
@@ -3986,13 +4062,26 @@ int
 main(int argc, char** argv)
 try
 {
-  if (argc != 3 || !argv[1] || !argv[2]) {
-    cerr << "Usage: pack-asmjs in.js out.wasm" << endl;
+  if (argc < 3 || !argv[1] || !argv[2]) {
+    cerr << "Usage: pack-asmjs in.js out.wasm [--size_trace] [--size_trace_full]" << endl;
     return -1;
+  }
+  const char* in_file_name = argv[1];
+  const char* out_file_name = argv[2];
+
+  for (int i = 4; i <= argc; i++) {
+    if (strcmp(argv[i - 1], "--size_trace") == 0) {
+      FLAG_size_trace = true;
+    } else if (strcmp(argv[i - 1], "--size_trace_full") == 0) {
+      FLAG_size_trace_full = true;
+    } else {
+      cerr << "Unknown option: " << argv[i - 1] << endl;
+      return -1;
+    }
   }
 
   // Parse the asm.js file.
-  ifstream in_stream(argv[1], ios::binary | ios::ate);
+  ifstream in_stream(in_file_name, ios::binary | ios::ate);
   in_stream.exceptions(ios::failbit | ios::badbit);
   vector<char> in_bytes(in_stream.tellg());
   in_stream.seekg(0);
@@ -4002,7 +4091,7 @@ try
   const asmjs::FuncNode& module = asmjs::parse(in_bytes.data());
 
   // Write out the .asm file (with bogus unpacked-size).
-  fstream out_stream(argv[2], ios::in | ios::out | ios::binary | ios::trunc);
+  fstream out_stream(out_file_name, ios::in | ios::out | ios::binary | ios::trunc);
   out_stream.exceptions(ios::failbit | ios::badbit);
   asmjs::pack(out_stream, module);
 
