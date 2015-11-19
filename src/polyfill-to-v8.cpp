@@ -15,22 +15,28 @@ v8::WasmOpcode opcode(I32 i) {
     // TODO: if index has Offset, emit i32add firstly
     case I32::SLoad8:
     case I32::SLoadOff8:
+      return v8::kExprI32LoadMem8S;
     case I32::ULoad8:
     case I32::ULoadOff8:
+      return v8::kExprI32LoadMem8U;
     case I32::SLoad16:
     case I32::SLoadOff16:
+      return v8::kExprI32LoadMem16S;
     case I32::ULoad16:
     case I32::ULoadOff16:
+      return v8::kExprI32LoadMem16U;
     case I32::Load32:
     case I32::LoadOff32:
-      return v8::kExprI32LoadMemL;
+      return v8::kExprI32LoadMem;
     case I32::Store8:
     case I32::StoreOff8:
+      return v8::kExprI32StoreMem8;
     case I32::Store16:
     case I32::StoreOff16:
+      return v8::kExprI32StoreMem16;
     case I32::Store32:
     case I32::StoreOff32:
-      return v8::kExprI32StoreMemL;
+      return v8::kExprI32StoreMem;
     case I32::CallInt: return v8::kExprCallFunction;
     case I32::CallInd: return v8::kExprCallIndirect;
     case I32::CallImp: return v8::kExprCallFunction;
@@ -99,10 +105,10 @@ v8::WasmOpcode opcode(F32 f) {
     // TODO: if index has Offset, emit i32add
     case F32::Load:
     case F32::LoadOff:
-      return v8::kExprF32LoadMemL;
+      return v8::kExprF32LoadMem;
     case F32::Store:
     case F32::StoreOff:
-      return v8::kExprF32StoreMemL;
+      return v8::kExprF32StoreMem;
     case F32::CallInt: return v8::kExprCallFunction;
     case F32::CallInd: return v8::kExprCallIndirect;
     case F32::Cond: return v8::kExprSelect;
@@ -133,10 +139,10 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::SetGlo: return v8::kExprStoreGlobal;
     case F64::Load:
     case F64::LoadOff:
-      return v8::kExprF64LoadMemL;
+      return v8::kExprF64LoadMem;
     case F64::Store:
     case F64::StoreOff:
-      return v8::kExprF64StoreMemL;
+      return v8::kExprF64StoreMem;
     case F64::CallInt: return v8::kExprCallFunction;
     case F64::CallInd: return v8::kExprCallIndirect;
     case F64::CallImp: return v8::kExprCallFunction;
@@ -237,17 +243,19 @@ v8::WasmOpcode opcode(const Stmt& s) {
     case Stmt::SetGlo: return v8::kExprStoreGlobal;
     case Stmt::I32Store8:
     case Stmt::I32StoreOff8:
+      return v8::kExprI32StoreMem8;
     case Stmt::I32Store16:
     case Stmt::I32StoreOff16:
+      return v8::kExprI32StoreMem16;
     case Stmt::I32Store32:
     case Stmt::I32StoreOff32:
-      return v8::kExprI32StoreMemL;
+      return v8::kExprI32StoreMem;
     case Stmt::F32Store:
     case Stmt::F32StoreOff:
-      return v8::kExprF32StoreMemL;
+      return v8::kExprF32StoreMem;
     case Stmt::F64Store:
     case Stmt::F64StoreOff:
-      return v8::kExprF64StoreMemL;
+      return v8::kExprF64StoreMem;
     case Stmt::CallInt: return v8::kExprCallFunction;
     case Stmt::CallInd: return v8::kExprCallIndirect;
     case Stmt::CallImp: return v8::kExprCallFunction;
@@ -282,36 +290,23 @@ v8::WasmOpcode opcode(const StmtWithImm& s) {
 uint8_t LoadStoreAccessOf(I32 i) {
   switch (i) {
     case I32::SLoad8:
-    case I32::SLoadOff8:
-    case I32::Store8:
-    case I32::StoreOff8:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI8) |
-          v8::MemoryAccess::SignExtendField::encode(true));
     case I32::ULoad8:
-    case I32::ULoadOff8:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI8) |
-          v8::MemoryAccess::SignExtendField::encode(false));
+    case I32::Store8:
     case I32::SLoad16:
-    case I32::SLoadOff16:
-    case I32::Store16:
-    case I32::StoreOff16:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI16) |
-          v8::MemoryAccess::SignExtendField::encode(true));
     case I32::ULoad16:
-    case I32::ULoadOff16:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI16) |
-          v8::MemoryAccess::SignExtendField::encode(false));
+    case I32::Store16:
     case I32::Load32:
-    case I32::LoadOff32:
     case I32::Store32:
+      return v8::MemoryAccess::OffsetField::encode(false);
+    case I32::SLoadOff8:
+    case I32::ULoadOff8:
+    case I32::StoreOff8:
+    case I32::SLoadOff16:
+    case I32::ULoadOff16:
+    case I32::StoreOff16:
+    case I32::LoadOff32:
     case I32::StoreOff32:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI32) |
-          v8::MemoryAccess::SignExtendField::encode(true));
+      return v8::MemoryAccess::OffsetField::encode(true);
     default:
       return 0;
   }
@@ -328,20 +323,13 @@ uint8_t LoadStoreAccessOf(const Expr& e) {
 uint8_t LoadStoreAccessOf(const Stmt& s) {
   switch (s) {
     case Stmt::I32Store8:
-    case Stmt::I32StoreOff8:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI8) |
-          v8::MemoryAccess::SignExtendField::encode(true));
     case Stmt::I32Store16:
-    case Stmt::I32StoreOff16:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI16) |
-          v8::MemoryAccess::SignExtendField::encode(true));
     case Stmt::I32Store32:
+      return v8::MemoryAccess::OffsetField::encode(false);
+    case Stmt::I32StoreOff8:
+    case Stmt::I32StoreOff16:
     case Stmt::I32StoreOff32:
-      return static_cast<uint8_t>(
-          v8::MemoryAccess::IntWidthField::encode(v8::MemoryAccess::kI32) |
-          v8::MemoryAccess::SignExtendField::encode(true));
+      return v8::MemoryAccess::OffsetField::encode(true);
     default:
       return 0;
   }
