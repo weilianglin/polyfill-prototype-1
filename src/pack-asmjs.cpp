@@ -2287,7 +2287,6 @@ analyze_index(Module& m, Function& f, IndexNode& index)
         assert(hv.shift == 0);
     }
 
-#ifndef V8_FORMAT
     if (index.index->is<BinaryNode>()) {
       BinaryNode& binary = index.index->as<BinaryNode>();
       if (binary.op.equals("+")) {
@@ -2300,7 +2299,6 @@ analyze_index(Module& m, Function& f, IndexNode& index)
         }
       }
     }
-#endif
 
     t = analyze_expr(m, f, *index.index);
   }

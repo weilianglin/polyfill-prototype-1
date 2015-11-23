@@ -307,17 +307,41 @@ uint8_t LoadStoreAccessOf(I32 i) {
     case I32::LoadOff32:
     case I32::StoreOff32:
       return v8::MemoryAccess::OffsetField::encode(true);
-    default:
-      return 0;
+    default: return unreachable<v8::WasmOpcode>();
+  }
+}
+
+uint8_t LoadStoreAccessOf(F32 f) {
+  switch(f) {
+    case F32::Store:
+    case F32::Load:
+      return v8::MemoryAccess::OffsetField::encode(false);
+    case F32::StoreOff:
+    case F32::LoadOff:
+      return v8::MemoryAccess::OffsetField::encode(true);
+    default: return unreachable<v8::WasmOpcode>();
+  }
+}
+
+uint8_t LoadStoreAccessOf(F64 f) {
+  switch(f) {
+    case F64::Store:
+    case F64::Load:
+      return v8::MemoryAccess::OffsetField::encode(false);
+    case F64::StoreOff:
+    case F64::LoadOff:
+      return v8::MemoryAccess::OffsetField::encode(true);
+    default: return unreachable<v8::WasmOpcode>();
   }
 }
 
 uint8_t LoadStoreAccessOf(const Expr& e) {
-  if (e.type() == RType::I32) {
-    return LoadStoreAccessOf(e.i32());
+  switch(e.type()) {
+    case RType::I32: return LoadStoreAccessOf(e.i32());
+    case RType::F32: return LoadStoreAccessOf(e.f32());
+    case RType::F64: return LoadStoreAccessOf(e.f64());
+    default: return unreachable<v8::WasmOpcode>();
   }
-
-  return 0;
 }
 
 uint8_t LoadStoreAccessOf(const Stmt& s) {
@@ -325,13 +349,17 @@ uint8_t LoadStoreAccessOf(const Stmt& s) {
     case Stmt::I32Store8:
     case Stmt::I32Store16:
     case Stmt::I32Store32:
+    case Stmt::F32Store:
+    case Stmt::F64Store:
       return v8::MemoryAccess::OffsetField::encode(false);
     case Stmt::I32StoreOff8:
     case Stmt::I32StoreOff16:
     case Stmt::I32StoreOff32:
+    case Stmt::F32StoreOff:
+    case Stmt::F64StoreOff:
       return v8::MemoryAccess::OffsetField::encode(true);
     default:
-      return 0;
+      return unreachable<v8::WasmOpcode>();
   }
 }
 

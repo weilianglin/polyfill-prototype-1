@@ -244,6 +244,43 @@ assertEqualsDelta(3.14, module.getF32(0), 0.00001);
 module.setF64(0, 3.1415926);
 assertEquals(3.1415926, module.getF64(0));
 
+print("test load-store-offset.wasm");
+var module = WASM.instantiateModule(readbuffer("load-store-offset.wasm"));
+module.setI32Off(4, 4294967296);
+assertEquals(0, module.getI32Off(4));
+module.setI32Off(8, 4294967295);
+assertEquals(-1, module.getI32Off(8));
+module.setI32Off(12, 2147483647);
+assertEquals(2147483647, module.getI32Off(12));
+
+module.setI8Off(0, 256);
+assertEquals(0, module.getI8Off(0));
+module.setI8Off(1, 255);
+assertEquals(-1, module.getI8Off(1));
+assertEquals(255, module.getUI8Off(1));
+module.setI8Off(2, 127);
+assertEquals(127, module.getI8Off(2));
+module.setI8Off(3, 128);
+assertEquals(-128, module.getI8Off(3));
+assertEquals(128, module.getUI8Off(3));
+
+module.setI16Off(0, 65536);
+assertEquals(0, module.getI16Off(0));
+module.setI16Off(2, 65535);
+assertEquals(-1, module.getI16Off(2));
+assertEquals(65535, module.getUI16Off(2));
+module.setI16Off(4, 32767);
+assertEquals(32767, module.getI16Off(4));
+module.setI16Off(6, 32768);
+assertEquals(-32768, module.getI16Off(6));
+assertEquals(32768, module.getUI16Off(6));
+
+module.setF32Off(0, 3.14);
+assertEqualsDelta(3.14, module.getF32Off(0), 0.00001);
+
+module.setF64Off(0, 3.1415926);
+assertEquals(3.1415926, module.getF64Off(0));
+
 print("test call_indirect.wasm");
 var module = WASM.instantiateModule(readbuffer("call_indirect.wasm"));
 assertEquals(120, module.call(0, 100, 20));
