@@ -773,8 +773,10 @@ public:
   void set_exported(bool exported) { exported_ = exported; }
   void inc_block_depth() { block_depth_++; }
   void dec_block_depth() { block_depth_--; }
-  void push_loop_switch() { depth_stack_.push_back(block_depth_); inc_block_depth(); inc_block_depth();}
-  void pop_loop_switch() { assert(!depth_stack_.empty()); depth_stack_.pop_back(); dec_block_depth(); dec_block_depth();}
+  void push_switch() { depth_stack_.push_back(block_depth_); inc_block_depth(); }
+  void pop_switch() { assert(!depth_stack_.empty()); depth_stack_.pop_back(); dec_block_depth(); }
+  void push_loop() { depth_stack_.push_back(block_depth_); inc_block_depth(); inc_block_depth(); }
+  void pop_loop() { assert(!depth_stack_.empty()); depth_stack_.pop_back(); dec_block_depth(); dec_block_depth(); }
   uint32_t closest_loop_switch() const
   {
     assert(!depth_stack_.empty());
@@ -3290,14 +3292,14 @@ write_while(Module& m, Function& f, const WhileNode& w)
 {
 #ifdef V8_FORMAT
   m.write().code(v8::kExprLoop);
-  f.push_loop_switch();
+  f.push_loop();
   m.write().fixed_width<uint8_t>(1);
   m.write().code(v8::kExprIf);
   write_expr(m, f, w.cond);
   m.write().code(v8::kExprBr);
   m.write().fixed_width<uint8_t>(0);
   write_stmt(m, f, w.body);
-  f.pop_loop_switch();
+  f.pop_loop();
 #else
   m.write().code(Stmt::While);
   write_expr(m, f, w.cond);
@@ -3310,7 +3312,7 @@ write_do(Module& m, Function& f, const DoNode& d)
 {
 #ifdef V8_FORMAT
   m.write().code(v8::kExprLoop);
-  f.push_loop_switch();
+  f.push_loop();
   m.write().fixed_width<uint8_t>(2);
   write_stmt(m, f, d.body);
   m.write().code(v8::kExprIf);
@@ -3318,7 +3320,7 @@ write_do(Module& m, Function& f, const DoNode& d)
   m.write().code(v8::kExprBr);
   m.write().fixed_width<uint8_t>(0);
   m.write().code(v8::kExprNop);
-  f.pop_loop_switch();
+  f.pop_loop();
 #else
   m.write().code(Stmt::Do);
   write_stmt(m, f, d.body);
@@ -3383,22 +3385,58 @@ void
 write_switch(Module& m, Function& f, const SwitchNode& s)
 {
 #ifdef V8_FORMAT
-  // TODO: v8 native doesn't support
-  /*m.write().code(v8::kStmtSwitch);
-  f.push_loop_switch();
-  m.write().fixed_width<uint8_t>(s.compute_length());
-  write_expr(m, f, s.expr);
-  int32_t caseval = 0;
+  unordered_map<int32_t, int32_t> table_to_case;
+  int32_t table_count = -1;
+  int32_t case_count = 0;
+  int32_t default_case_index = -1; //-1 means no default case
+  bool implicit_default = false;
   for (const CaseNode* c = s.first; c; c = c->next) {
-    assert(c->label);
-    assert(NumLit(m, *c->label).int32() == caseval++);
-    if (!c->first) {
-      m.write().code(v8::kStmtNop);
-    } else if (c->first == c->last) {
+    if (c->label) {
+      int32_t table_index = NumLit(m, *c->label).int32();
+      // TODO: Support negative value.
+      assert(table_index >= 0);
+      assert(table_to_case.find(table_index) == table_to_case.end());
+      if (table_index > table_count)
+        table_count = table_index;
+      if (!c->first)
+      // Fall through
+        table_to_case[table_index] = case_count;
+      else
+        table_to_case[table_index] = case_count++;
+    } else {
+      assert(default_case_index == -1);
+      if (!c->first)
+        default_case_index = case_count;
+      else
+        default_case_index = case_count++;
+    }
+  }
+  table_count += 2;
+  if (default_case_index == -1) {
+    implicit_default = true;
+    default_case_index = case_count++;
+  }
+
+  m.write().code(opcode(Stmt::Switch));
+  f.push_switch();
+  m.write().fixed_width<uint16_t>(case_count);
+  m.write().fixed_width<uint16_t>(table_count);
+  for (int32_t val = 0; val < table_count - 1; val++) {
+    auto iter = table_to_case.find(val);
+    if (iter != table_to_case.end())
+      m.write().fixed_width<uint16_t>(iter->second);
+    else
+      m.write().fixed_width<uint16_t>(default_case_index);
+  }
+  m.write().fixed_width<uint16_t>(default_case_index);
+  write_expr(m, f, s.expr);
+  for (const CaseNode* c = s.first; c; c = c->next) {
+    if (!c->first)
+      continue;
+    if (c->first == c->last) {
       write_stmt(m, f, c->first->stmt);
     } else {
-      // Write a block
-      m.write().code(v8::kStmtBlock);
+      m.write().code(opcode(Stmt::Block));
       f.inc_block_depth();
       m.write().fixed_width<uint8_t>(c->compute_length());
       for (const CaseStmtNode* s = c->first; s; s = s->next)
@@ -3406,8 +3444,9 @@ write_switch(Module& m, Function& f, const SwitchNode& s)
       f.dec_block_depth();
     }
   }
-  f.pop_loop_switch();*/
-  return;
+  if (implicit_default)
+    m.write().code(v8::kExprNop);
+  f.pop_switch();
 #else
   m.write().code(Stmt::Switch);
   m.write().imm_u32(s.compute_length());

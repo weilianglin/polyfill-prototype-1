@@ -272,7 +272,7 @@ v8::WasmOpcode opcode(const Stmt& s) {
     case Stmt::Continue:
     case Stmt::ContinueLabel:
       return v8::kExprBr;
-    case Stmt::Switch:
+    case Stmt::Switch: return v8::kExprTableSwitch;
     default:
       return unreachable<v8::WasmOpcode>();
   }

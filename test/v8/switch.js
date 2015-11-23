@@ -60,5 +60,19 @@ function $x(a){
   return a|0;
 }
 
-return {one:$w,two:$x};
+function $y(a){
+  a=a|0;
+  switch(a) {
+  case 3:
+  case 10:
+    a = 30;
+    break;
+  case 1:
+    break;
+  default:
+    a = 100;
+  }
+  return a|0;
+}
+return {one:$w,two:$x,three:$y};
 }

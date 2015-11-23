@@ -88,8 +88,6 @@ assertEquals(7, module.three(5));
 assertEquals(3, module.four(5));
 assertEquals(7, module.five(5));
 
-print("IGNORE switch.wasm");
-/*
 print("test switch.wasm");
 var module = WASM.instantiateModule(readbuffer("switch.wasm"));
 assertEquals(5, module.one(5));
@@ -100,7 +98,12 @@ assertEquals(30, module.two(3));
 assertEquals(40, module.two(4));
 assertEquals(50, module.two(5));
 assertEquals(-1, module.two(-1));
-*/
+assertEquals(100, module.three(0));
+assertEquals(1, module.three(1));
+assertEquals(100, module.three(2));
+assertEquals(30, module.three(3));
+assertEquals(100, module.three(4));
+assertEquals(30, module.three(10));
 
 print("test compare.wasm");
 var module = WASM.instantiateModule(readbuffer("compare.wasm"));
