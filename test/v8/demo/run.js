@@ -1,5 +1,25 @@
+var __ASMJS__ = true;
+var __BENCHMARK__ = "demo.js";
+var __ENV__ = "emscripten.runtime.js";
+(function(argv) {
+  if (argv[0] != "asm.js") {
+    __ASMJS__ = false;
+    __BENCHMARK__ = "demo.wasm";
+  }
+
+  if (argv.length > 1) {
+    __BENCHMARK__ = argv[1];
+    if (__ASMJS__) {
+      var file = __BENCHMARK__.replace('.js', '');
+    } else {
+      var file = __BENCHMARK__.replace('.wasm', '');
+    }
+    __ENV__ = file + ".runtime.js"
+  }
+})(arguments);
+
 // 1. runtime and libc support
-load("emscripten-runtime.js");
+load(__ENV__);
 
 // some helper functions for imported variables
 Module.asmLibraryArg.getSTACKTOP = function getSTACKTOP() { return STACKTOP; };
@@ -9,7 +29,13 @@ Module.asmLibraryArg.getABORT = function getABORT() { return ABORT; }
 Module.asmLibraryArg.getInf = function getInf() { return Infinity; }
 
 // 2. load asm.js or wasm module
-load("load_wasmModule.js");
+if (__ASMJS__) {
+  load(__BENCHMARK__);
+  var asm = asmModule(Module.asmGlobalArg, Module.asmLibraryArg, buffer);
+} else {
+  var wasm_buffer = readbuffer(__BENCHMARK__);
+  var asm = WASM.instantiateModule(wasm_buffer, Module.asmLibraryArg, buffer);
+}
 
 // 3. run app
 var _strlen = Module["_strlen"] = asm["_strlen"];

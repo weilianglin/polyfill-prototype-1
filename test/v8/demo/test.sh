@@ -17,15 +17,12 @@ function run() {
   fi
 
   if [ -e "${case}.js" ]; then
-    cp ${case}.runtime.js emscripten-runtime.js
     echo "  === asm.js ==="
-    cp ${case}.js demo.js
-    $d8 run-asm.js
+    $d8 run.js -- asm.js ${case}.js
 
     echo "  === wasm ==="
     $packer ${case}.js ${case}.wasm
-    cp ${case}.wasm demo.wasm
-    $d8 run-wasm.js
+    $d8 run.js -- wasm ${case}.wasm
   fi
   echo
 }

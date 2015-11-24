@@ -26,26 +26,22 @@ function run() {
   fi
 
   if [ -e "${case}.js" ]; then
-    cp ${case}.runtime.js emscripten-runtime.js
     echo "  === asm.js ==="
     ls -l ${case}.js
-    cp ${case}.js demo.js
-    $d8 run-asm.js --noturbo_osr --trace_parse
-    $d8 run-asm.js --noturbo_osr
+    $d8 --noturbo_osr --trace_parse run.js -- asm.js ${case}.js
+    $d8 --noturbo_osr run.js -- asm.js ${case}.js
 
     echo "  === asm-m.js ==="
     yui-compressor ${case}.js > ${case}-m.js
     ls -l ${case}-m.js
-    cp ${case}-m.js demo.js
-    $d8 run-asm.js --noturbo_osr --trace_parse
-    $d8 run-asm.js --noturbo_osr
+    # $d8 --noturbo_osr --trace_parse run.js -- asm.js ${case}.js
+    # $d8 --noturbo_osr run.js -- asm.js ${case}.js
 
     echo "  === wasm ==="
     $packer ${case}.js ${case}.wasm
-    cp ${case}.wasm demo.wasm
-    $d8 verify-wasm.js --trace_wasm_decode_time
-    $d8 run-wasm.js --trace_wasm_decode_time
-    $d8 run-wasm.js
+    $d8 --trace_wasm_decode_time verify-wasm.js -- ${case}.wasm
+    $d8 --trace_wasm_decode_time run.js -- wasm ${case}.wasm
+    $d8 run.js -- wasm ${case}.wasm
 
   fi
   echo
