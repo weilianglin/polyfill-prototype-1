@@ -61,7 +61,7 @@ v8::WasmOpcode opcode(I32 i) {
     case I32::Lsh: return v8::kExprI32Shl;
     case I32::ArithRsh: return v8::kExprI32ShrS;
     case I32::LogicRsh: return v8::kExprI32ShrU;
-    case I32::Clz: return v8::kExprI32Clz; // TODO: v8 decoder does not support
+    case I32::Clz: return v8::kExprI32Clz;
     case I32::LogicNot: return v8::kExprBoolNot;
     case I32::EqI32: return v8::kExprI32Eq;
     case I32::EqF32: return v8::kExprF32Eq;

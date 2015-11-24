@@ -73,10 +73,10 @@ function $abs(k){
 k=k|0;
 return $o(k|0)|0;
 }
-/*function $clz(k){
+function $clz(k){
 k=k|0;
 return $t(k)|0;
-}*/
+}
 
-return {add:$add,sub:$sub,mul:$mul,udiv:$udiv,sdiv:$sdiv,umod:$umod,smod:$smod,neg:$neg,abs:$abs/*,clz:$clz*/};
+return {add:$add,sub:$sub,mul:$mul,udiv:$udiv,sdiv:$sdiv,umod:$umod,smod:$smod,neg:$neg,abs:$abs,clz:$clz};
 }

@@ -70,7 +70,7 @@ assertEquals(100, module.neg(-100));
 assertEquals(0, module.neg(0));
 assertEquals(100, module.abs(-100));
 assertEquals(100, module.abs(100));
-//assertEquals(29, module.clz(5));
+assertEquals(29, module.clz(5));
 
 print("test break.wasm");
 var module = WASM.instantiateModule(readbuffer("break.wasm"));
