@@ -290,3 +290,7 @@ assertEquals(120, module.call(0, 100, 20));
 assertEquals(80, module.call(1, 100, 20));
 assertEquals(2000, module.call(2, 100, 20));
 assertEquals(5, module.call(3, 100, 20));
+
+print("test empty.wasm");
+var module = WASM.instantiateModule(readbuffer("empty.wasm"));
+assertEquals(undefined, module.empty());

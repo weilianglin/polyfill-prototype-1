@@ -3607,14 +3607,8 @@ v8_write_signature_section(Module& m)
 
 void
 write_function_body(Module& m, Function& f, const AstNode* stmts) {
-  uint32_t num_stmts = 0;
-  for (const AstNode* n = stmts; n; n = n->next)
-    num_stmts++;
-  // v8-native does not support empty functions.
-  if (num_stmts == 0) {
-    m.write().code(v8::kExprNop);
+  if (!stmts)
     return;
-  }
   const AstNode* n = stmts;
   for (;n->next; n = n->next)
     write_stmt(m, f, *n);

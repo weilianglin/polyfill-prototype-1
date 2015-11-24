@@ -1,7 +1,7 @@
 pushd test/v8
 rm -fr *.wasm
 
-testcases="call call_import name_access if while do literal int32 break continue switch compare comma float64 float32 bitwise ternary not convert load-store call_indirect load-store-offset"
+testcases="call call_import name_access if while do literal int32 break continue switch compare comma float64 float32 bitwise ternary not convert load-store call_indirect load-store-offset empty"
 for file in `echo $testcases`
 do
   echo "generate $file wasm"
