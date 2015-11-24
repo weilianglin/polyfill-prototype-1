@@ -160,8 +160,8 @@ assertEqualsDelta(2, module.div(2.2, 1.1), 0.00001);
 // assertEquals(1.1, module.min(2.2, 1.1));
 // assertEquals(2.2, module.max(2.2, 1.1));
 assertEquals(2.2, module.abs(-2.2));
-// assertEquals(3, module.ceil(2.2));
-// assertEquals(2, module.floor(2.2));
+assertEquals(3, module.ceil(2.2));
+assertEquals(2, module.floor(2.2));
 assertEqualsDelta(1.414213, module.sqrt(2), 0.00001);
 
 print("test float32.wasm");

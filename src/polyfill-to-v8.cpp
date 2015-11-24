@@ -161,8 +161,8 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::Max: return v8::kExprF64Max; // TODO: v8 decoder does not support
       return unreachable<v8::WasmOpcode>();
     case F64::Abs: return v8::kExprF64Abs;
-    case F64::Ceil: return v8::kExprF64Ceil;  // TODO: v8 decoder does not support
-    case F64::Floor: return v8::kExprF64Floor;  // TODO: v8 decoder does not support
+    case F64::Ceil: return v8::kExprF64Ceil;
+    case F64::Floor: return v8::kExprF64Floor;
     case F64::Sqrt: return v8::kExprF64Sqrt;
     // Transfer to call JavaScript builtins
     case F64::Cos:

@@ -75,7 +75,7 @@ function abs(a){
   return +$o(a);
 }
 
-/*function ceil(a){
+function ceil(a){
   a=+a;
   return +$l(a);
 }
@@ -83,12 +83,12 @@ function abs(a){
 function floor(a){
   a=+a;
   return +$m(a);
-}*/
+}
 
 function sqrt(a){
   a=+a;
   return +$n(a);
 }
 
-return {neg:neg, add:add, sub:sub, mul:mul, div:div, /*min:min, max:max,*/ abs:abs, /*ceil:ceil, floor:floor,*/ sqrt:sqrt};
+return {neg:neg, add:add, sub:sub, mul:mul, div:div, /*min:min, max:max,*/ abs:abs, ceil:ceil, floor:floor, sqrt:sqrt};
 }
