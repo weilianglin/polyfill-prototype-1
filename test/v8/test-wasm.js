@@ -104,6 +104,10 @@ assertEquals(100, module.three(2));
 assertEquals(30, module.three(3));
 assertEquals(100, module.three(4));
 assertEquals(30, module.three(10));
+assertEquals(30, module.four(3));
+assertEquals(50, module.four(50));
+assertEquals(30, module.five(3));
+assertEquals(50, module.five(50));
 
 print("test compare.wasm");
 var module = WASM.instantiateModule(readbuffer("compare.wasm"));

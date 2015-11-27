@@ -3398,14 +3398,14 @@ write_switch(Module& m, Function& f, const SwitchNode& s)
       assert(table_to_case.find(table_index) == table_to_case.end());
       if (table_index > table_count)
         table_count = table_index;
-      if (!c->first)
+      if (!c->first && c->next)
       // Fall through
         table_to_case[table_index] = case_count;
       else
         table_to_case[table_index] = case_count++;
     } else {
       assert(default_case_index == -1);
-      if (!c->first)
+      if (!c->first && c->next)
         default_case_index = case_count;
       else
         default_case_index = case_count++;
@@ -3431,9 +3431,12 @@ write_switch(Module& m, Function& f, const SwitchNode& s)
   m.write().fixed_width<uint16_t>(default_case_index);
   write_expr(m, f, s.expr);
   for (const CaseNode* c = s.first; c; c = c->next) {
-    if (!c->first)
-      continue;
-    if (c->first == c->last) {
+    if (!c->first) {
+      if (c->next)
+        continue;
+      else
+        m.write().code(v8::kExprNop);
+    } else if (c->first == c->last) {
       write_stmt(m, f, c->first->stmt);
     } else {
       m.write().code(opcode(Stmt::Block));

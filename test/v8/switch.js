@@ -74,5 +74,29 @@ function $y(a){
   }
   return a|0;
 }
-return {one:$w,two:$x,three:$y};
+
+function $z(a){
+  a=a|0;
+  switch(a) {
+  case 3:
+  case 10:
+    a = 30;
+    break;
+  case 50:
+  }
+  return a|0;
+}
+
+function $aa(a){
+  a=a|0;
+  switch(a) {
+  case 3:
+  case 10:
+    a = 30;
+    break;
+  default: {}
+  }
+  return a|0;
+}
+return {one:$w,two:$x,three:$y,four:$z,five:$aa};
 }
