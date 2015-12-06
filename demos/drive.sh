@@ -61,11 +61,10 @@ function create () {
 function run () {
   case=$1
   if [ "$NATIVE" = true ]; then
-    echo "== native =="
+    echo "== native x64 =="
     ./${case}
-    ./${case}-s
+    echo "== native ia32 =="
     ./${case}-32
-    ./${case}-32-s
   fi
 
   echo "== f64 asm.js =="
