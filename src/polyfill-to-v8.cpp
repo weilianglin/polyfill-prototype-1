@@ -122,8 +122,8 @@ v8::WasmOpcode opcode(F32 f) {
     case F32::Mul: return v8::kExprF32Mul;
     case F32::Div: return v8::kExprF32Div;
     case F32::Abs: return v8::kExprF32Abs;
-    case F32::Ceil: return v8::kExprF32Ceil; // TODO: v8 decoder does not support
-    case F32::Floor: return v8::kExprF32Floor; // TODO: v8 decoder does not support
+    case F32::Ceil: return v8::kExprF32Ceil;
+    case F32::Floor: return v8::kExprF32Floor;
     case F32::Sqrt: return v8::kExprF32Sqrt;
     default:
       return unreachable<v8::WasmOpcode>();
@@ -157,8 +157,8 @@ v8::WasmOpcode opcode(F64 f) {
     case F64::Mul: return v8::kExprF64Mul;
     case F64::Div: return v8::kExprF64Div;
     case F64::Mod:  // wasm spec and v8 do not support mod
-    case F64::Min: return v8::kExprF64Min;  // TODO: v8 decoder does not support
-    case F64::Max: return v8::kExprF64Max; // TODO: v8 decoder does not support
+    case F64::Min: return v8::kExprF64Min;
+    case F64::Max: return v8::kExprF64Max;
       return unreachable<v8::WasmOpcode>();
     case F64::Abs: return v8::kExprF64Abs;
     case F64::Ceil: return v8::kExprF64Ceil;

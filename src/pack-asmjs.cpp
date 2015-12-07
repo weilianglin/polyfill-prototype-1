@@ -3203,8 +3203,16 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
     }
     case CallNode::NaryBuiltin:
       assert(ctx == Ctx::Expr);
+#ifdef V8_FORMAT
+      // Max(a) ==> a
+      // Max(a, b, c) ==> Max (Max(a,b), c)
+      assert(call.expr == I32::SMax || call.expr == I32::SMin || call.expr == F64::Max || call.expr == F64::Min);
+      for (uint32_t i = 1; i < call.compute_length(); i++)
+        m.write().code(opcode(call.expr));
+#else
       m.write().code(call.expr);
       m.write().imm_u32(call.compute_length());
+#endif
       break;
     case CallNode::FixedArityBuiltin:
       assert(ctx == Ctx::Expr);

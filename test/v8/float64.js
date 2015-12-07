@@ -58,17 +58,45 @@ function div(a, b){
   return +(a/b);
 }
 
-/*function min(a, b){
+function min(a, b){
   a=+a;
   b=+b;
   return +$p(a, b);
+}
+
+function min_unary(a){
+  a=+a;
+  return +$p(a);
+}
+
+function min_nary(a, b, c, d, e){
+  a=+a;
+  b=+b;
+  c=+c;
+  d=+d;
+  e=+e;
+  return +$p(a, b, c, d, e);
 }
 
 function max(a, b){
   a=+a;
   b=+b;
   return +$q(a, b);
-}*/
+}
+
+function max_unary(a){
+  a=+a;
+  return +$q(a);
+}
+
+function max_nary(a, b, c, d, e){
+  a=+a;
+  b=+b;
+  c=+c;
+  d=+d;
+  e=+e;
+  return +$q(a, b, c, d, e);
+}
 
 function abs(a){
   a=+a;
@@ -90,5 +118,5 @@ function sqrt(a){
   return +$n(a);
 }
 
-return {neg:neg, add:add, sub:sub, mul:mul, div:div, /*min:min, max:max,*/ abs:abs, ceil:ceil, floor:floor, sqrt:sqrt};
+return {neg:neg, add:add, sub:sub, mul:mul, div:div, min:min, min_unary:min_unary, min_nary:min_nary, max:max, max_unary:max_unary, max_nary:max_nary, abs:abs, ceil:ceil, floor:floor, sqrt:sqrt};
 }
