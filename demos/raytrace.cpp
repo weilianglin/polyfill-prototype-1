@@ -173,8 +173,8 @@ static node_t *create(node_t*n,const int lvl,int dist,v_t c,v_t d,double r) {
 int main(int argc,char*argv[]){
   struct timeval tv1, tv2;
   gettimeofday(&tv1, NULL);
-  const int lvl=3;
-  const int size=16;
+  const int lvl=7;
+  const int size=256;
   int count=childs, dec=lvl;
   while(--dec > 1) count=(count*childs)+childs;
   ++count;

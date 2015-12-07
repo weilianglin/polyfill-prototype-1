@@ -44,17 +44,21 @@ fi
 
 function create () {
   case=$1
+  EXTRA_OPTIONS=""
   if [ "$NATIVE" = true ]; then
     echo "== create native =="
     compile $case
   fi
 
+  if [ $case = "raytrace" ]; then
+    EXTRA_OPTIONS="-s TOTAL_MEMORY=134217728"
+  fi
   echo "== create f64 =="
-  emcc -O2 --profiling -g2 ${case}.cpp -o ${case}.js
+  emcc -O2 --profiling -g2 ${case}.cpp -o ${case}.js ${EXTRA_OPTIONS}
   bash translate.sh ${case}.js
 
   echo "== create f32 =="
-  emcc -O2 --profiling -g2 ${case}.cpp -o ${case}.f32.js  -s PRECISE_F32=1
+  emcc -O2 --profiling -g2 ${case}.cpp -o ${case}.f32.js  -s PRECISE_F32=1 ${EXTRA_OPTIONS}
   bash translate.sh ${case}.f32.js
 }
 
