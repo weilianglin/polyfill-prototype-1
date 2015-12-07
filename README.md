@@ -57,3 +57,17 @@ polyfill (perform direct size/load-time comparisons) by following the steps:
  * Decode while downloading (using HTTP `Range` requests or splitting into separate files)
  * Perform generic compression on top of the `.wasm` file (e.g., 
    [lzham](https://github.com/richgel999/lzham_codec) gives a further 24% boost over `gzip`).
+
+## Packing asm.js into the V8 binary format
+
+The polyfill is enhanced to emit v8 binary format (`tools/pack-asmjs-v8`)
+ 1. Separate the asm.js module out into a separate file.
+ 2. Run `tools/pack-asmjs` to produce a `.wasm` file.
+ 3. you need to build V8 with WASM support. Refer to [v8-native-prototye] (https://github.com/WebAssembly/v8-native-prototype)
+ 3. Refactor the code that called the asm.js module to use a wrapper for loading WebAssembly binary modules in d8.
+    Refer to test/v8/test-wasm.js.
+ 4. A helper shell script (demos/drive.sh) is provided to automatically convert C/C++ code to V8 binary modules.
+```
+$ cd demos
+$ bash drive.sh create run
+```

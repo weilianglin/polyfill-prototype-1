@@ -8,5 +8,5 @@ do
   ../../tools/pack-asmjs-v8 ${file}.js ${file}.wasm
 done
 
-~/work/v8/out/x64.debug/d8  assert.js test-wasm.js
+~/work/v8/out/x64.release/d8  assert.js test-wasm.js
 popd

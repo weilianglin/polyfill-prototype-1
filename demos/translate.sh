@@ -1,4 +1,4 @@
-PACKER=/home/user/work/wasm/ssg_webpup-wasmpolyfillv8/tools/pack-asmjs-v8
+PACKER=../tools/pack-asmjs-v8
 if [ $# -lt 1 ]; then
   echo post.sh js_file
   exit 0
