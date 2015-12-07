@@ -262,7 +262,7 @@ v8::WasmOpcode opcode(const Stmt& s) {
     case Stmt::Ret: return v8::kExprReturn;
     case Stmt::Block: return v8::kExprBlock;
     case Stmt::IfThen: return v8::kExprIf;
-    case Stmt::IfElse: return v8::kExprIfThen;
+    case Stmt::IfElse: return v8::kExprIfElse;
     case Stmt::While:
     case Stmt::Do:
     case Stmt::Label:

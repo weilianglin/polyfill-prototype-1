@@ -3219,7 +3219,7 @@ write_call(Module& m, Function& f, const CallNode& call, Ctx ctx)
 #ifdef V8_FORMAT
       // I32::Abs value >=0 ? value : -value
       if (call.expr == I32::Abs) {
-        m.write().code(v8::kExprIfThen);
+        m.write().code(v8::kExprIfElse);
         m.write().code(v8::kExprI32GeS);
         write_expr(m, f, *call.first);
         m.write().code(v8::kExprI32Const);
