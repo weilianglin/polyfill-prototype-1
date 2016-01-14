@@ -5777,7 +5777,8 @@ Module.asmLibraryArg.getCttz_i8 = function getCttz_i8() { return cttz_i8; }
 
 // wasm module
 var wasm_buffer = readbuffer("corrections.f32.wasm");
-var asm = WASM.instantiateModule(wasm_buffer, Module.asmLibraryArg, buffer);
+_WASMEXP_.verifyModule(wasm_buffer, Module.asmLibraryArg, buffer);
+var asm = _WASMEXP_.instantiateModule(wasm_buffer, Module.asmLibraryArg, buffer);
 
 var _i64Subtract = Module["_i64Subtract"] = asm["_i64Subtract"];
 var _free = Module["_free"] = asm["_free"];

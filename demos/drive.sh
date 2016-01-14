@@ -75,13 +75,13 @@ function run () {
   $D8 ${case}.js
 
   echo "== f64 wasm =="
-  $D8 ${case}.wasm.js
+  $D8 --expose_wasm ${case}.wasm.js
 
   echo "== f32 asm.js =="
   $D8 ${case}.f32.js
 
   echo "== f32 wasm =="
-  $D8 ${case}.f32.wasm.js
+  $D8 --expose_wasm ${case}.f32.wasm.js
 }
 function compile() {
   case=$1

@@ -42,7 +42,8 @@ Module.asmLibraryArg.getCttz_i8 = function getCttz_i8() { return cttz_i8; }
 
 // wasm module
 var wasm_buffer = readbuffer(\"${NAME}.wasm\");
-var asm = WASM.instantiateModule(wasm_buffer, Module.asmLibraryArg, buffer);
+_WASMEXP_.verifyModule(wasm_buffer, Module.asmLibraryArg, buffer);
+var asm = _WASMEXP_.instantiateModule(wasm_buffer, Module.asmLibraryArg, buffer);
 " >> $RUNFILE
       POS="runtime"
       continue
