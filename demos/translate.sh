@@ -1,11 +1,11 @@
+#!/bin/bash
+
 PACKER=../tools/pack-asmjs-v8
 if [ $# -lt 1 ]; then
   echo post.sh js_file
   exit 0
 fi
-INPUT="temp.js"
-sed 's/\\/\\\\/g' $1 > $INPUT
-NAME=`expr $1 : '\(.*\).js'`
+NAME=${1%.js}
 FILE="${NAME}.asm_module.js"
 RUNFILE="${NAME}.wasm.js"
 WASM="${NAME}.wasm"
@@ -18,25 +18,20 @@ echo > $RUNFILE
 
 # 1. preprocess
 if [ -f "$1" ]; then
-  while read LINE
+  while read -r LINE
   do
     PRE=$CUR
     CUR=$LINE
     if [ "$POS" = "runtime" ];then
-      cat >> ${RUNFILE} <<EOF
-${PRE}
-EOF
+      echo "$PRE" >> ${RUNFILE}
     elif [ "$POS" = "start" ]; then
       POS="module"
     elif [ "$POS" = "end" ]; then
-      cat >> $FILE << EOL
-${PRE}
-EOL
-     POS="arguments"
-     continue
+      echo "$PRE" >> $FILE
+      POS="arguments"
+      continue
     elif [ "$POS" = "arguments" ]; then
-      cat >> $RUNFILE << EOL
-
+      echo "
 // some helper functions for imported variables
 Module.asmLibraryArg.getSTACKTOP = function getSTACKTOP() { return STACKTOP; };
 Module.asmLibraryArg.getSTACK_MAX = function getSTACK_MAX() { return STACK_MAX; }
@@ -46,14 +41,13 @@ Module.asmLibraryArg.getInf = function getInf() { return Infinity; }
 Module.asmLibraryArg.getCttz_i8 = function getCttz_i8() { return cttz_i8; }
 
 // wasm module
-var wasm_buffer = readbuffer("${NAME}.wasm");
+var wasm_buffer = readbuffer(\"${NAME}.wasm\");
 var asm = WASM.instantiateModule(wasm_buffer, Module.asmLibraryArg, buffer);
-
-EOL
+" >> $RUNFILE
       POS="runtime"
       continue
     elif [ "$POS" = "func_start" ]; then
-      cat >> $FILE <<EOL
+      echo "\
 var getSTACKTOP = env.getSTACKTOP;
 var getSTACK_MAX = env.getSTACK_MAX;
 var getTempDoublePtr = env.getTempDoublePtr;
@@ -67,14 +61,11 @@ function _env_init() {
   tempDoublePtr=getTempDoublePtr()|0;
   ABORT=getABORT()|0;
   cttz_i8 = getCttz_i8()|0;
-}
-EOL
+}" >> $FILE
       POS="module"
     
     elif [ "$POS" = "module" ]; then
-      cat >> $FILE << EOL
-${PRE}
-EOL
+      echo "$PRE" >> $FILE
     fi
 
     if [ "$CUR" = '// EMSCRIPTEN_START_ASM' ]; then
@@ -84,8 +75,7 @@ EOL
     elif [ "$CUR" = '// EMSCRIPTEN_START_FUNCS' ]; then
       POS="func_start"
     else
-      decl=`expr "$CUR" : '\(var asm =\).*'`
-      if [ "$decl" = "var asm =" ]; then
+      if [ "${CUR#var asm =}" != "$CUR" ]; then
         CUR="function asmModule(global,env,buffer) {"
         continue
       fi
@@ -93,23 +83,19 @@ EOL
         CUR="}"
         continue
       fi
-      main=`expr "$CUR" : '\(function _main\).*'`
-      if [ "$main" = "function _main" ]; then
+      if [ "${CUR#function _main}" != "$CUR" ]; then
         INIT=true
         continue
       fi
       if [ "$INIT" = true ]; then
-        ST=`expr "$CUR" : '.*\(= STACKTOP;\).*'`
-        if [ "$ST" = "= STACKTOP;" ]; then
+        if [ "${CUR#*= STACKTOP;}" != "$CUR" ]; then
           echo "_env_init();" >> $FILE
           INIT=false
         fi
       fi
     fi
-  done < $INPUT
+  done < $1
 fi
-
-rm -fr $INPUT
 
 # 2. conversion
 if [ -f "$FILE" ]; then
