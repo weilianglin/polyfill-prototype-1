@@ -3137,9 +3137,9 @@ write_ternary(Module& m, Function& f, const TernaryNode& ternary)
 {
   SizeTrace st("ternary", m);
   m.write().code(opcode(ternary.expr));
-  write_expr(m, f, ternary.cond);
   write_expr(m, f, ternary.lhs);
   write_expr(m, f, ternary.rhs);
+  write_expr(m, f, ternary.cond);
 }
 
 void
