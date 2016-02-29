@@ -3628,6 +3628,15 @@ write_export_section(Module& m)
 }
 
 #ifdef V8_FORMAT
+const uint32_t kWasmMagic = 0x6d736100;
+const uint32_t kWasmVersion = 0x0a;
+
+void
+write_magic_number(Module& m) {
+  m.write().fixed_width<uint32_t>(kWasmMagic);
+  m.write().fixed_width<uint32_t>(kWasmVersion);
+}
+
 void
 write_memory_declaration(Module& m) {
   SizeTrace st("mem section", m, true);
@@ -3826,6 +3835,8 @@ write_module(Module& m)
 {
   SizeTrace st("module section", m, true);
 #ifdef V8_FORMAT
+  // 0. emit magic number
+  write_magic_number(m);
   // 1. emit memory declaration
   write_memory_declaration(m);
   // 2. emit globals
